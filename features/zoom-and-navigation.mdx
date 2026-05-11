@@ -1,0 +1,89 @@
+---
+title: "Zoom, pan, and scroll position memory in FluxMarkdown"
+description: "Zoom Markdown previews with keyboard shortcuts, Cmd+scroll, or two-finger pinch in FluxMarkdown. Scroll position persists across sessions automatically."
+---
+
+FluxMarkdown provides several complementary ways to zoom the preview and navigate long documents. Zoom works in both the standalone app and the QuickLook panel (with some differences noted below), and scroll position is remembered across sessions so you return to exactly where you left off.
+
+## Keyboard zoom
+
+Use standard macOS shortcuts to adjust the zoom level via text reflow:
+
+| Shortcut | Action |
+|---|---|
+| `Cmd+` `+` or `Cmd+=` | Zoom in |
+| `Cmd+` `-` | Zoom out |
+| `Cmd+0` | Reset to 100% |
+
+Keyboard zoom uses `pageZoom` (CSS layout reflow), so text wraps correctly at every zoom level rather than overflowing horizontally. The zoom range is **0.5× to 3.0×** in 0.1-step increments.
+
+<Note>
+In the QuickLook panel, macOS may intercept some `Cmd+key` combinations before they reach FluxMarkdown. If keyboard shortcuts are unresponsive, use Cmd+scroll or pinch gestures instead — both are more reliable in QuickLook mode.
+</Note>
+
+A **Reset Zoom** button (↩) sits between the Zoom Out and Zoom In buttons in the toolbar. Clicking it is equivalent to `Cmd+0`.
+
+## Cmd+scroll zoom
+
+Hold `Cmd` and scroll up or down on a mouse wheel or trackpad to zoom:
+
+- Scroll events are accumulated and snapped to a 0.05-step grid in real time so the preview feels responsive during the gesture.
+- The exact final zoom value is committed at gesture end (`phase == .ended`), with momentum scroll events filtered out so inertia does not cause accidental zoom after you lift your fingers.
+- Range: **0.5× to 3.0×**, consistent with keyboard zoom.
+
+<Tip>
+If you use a mouse-enhancement tool such as Mouseless that synthesises scroll events with `ctrlKey = true`, FluxMarkdown detects this and redirects the event to `scrollBy()` rather than zoom, so normal scrolling is not broken.
+</Tip>
+
+## Two-finger pinch zoom
+
+Trackpad pinch gestures trigger **visual magnification** via `WKWebView.setMagnification()` — the entire page content scales as a single unit, similar to photo zoom in Photos.app, without causing text reflow.
+
+- Pinch range: **0.25× to 5.0×**
+- The broader range (wider than keyboard/scroll zoom) lets you zoom into small diagrams or fine print.
+- Pinch zoom operates independently from the `pageZoom` text-reflow zoom; both can be active simultaneously.
+
+### Two-finger double-tap to reset
+
+A two-finger double-tap on the trackpad (macOS `smartMagnify` event) resets visual magnification to 100% with a smooth 0.25-second animation. This is the fastest way to return to the default view after pinching deep into a diagram.
+
+## Scroll position memory
+
+FluxMarkdown remembers scroll position across preview sessions. When you close a file and reopen it — or switch away and return — the preview scrolls back to the same position automatically.
+
+<Info>
+Scroll position is tied to the file path. If you rename or move the file, the remembered position is not carried over.
+</Info>
+
+Zoom level is **session-only**: each file opens at 100% zoom. Zoom is not persisted to disk so that re-opening a file always gives you a clean starting view, regardless of how zoomed-in the previous session was.
+
+## Table of contents panel
+
+The table of contents (TOC) panel is available in both the standalone app and QuickLook mode. It extracts all headings from the document and presents them as a hierarchical list in a sidebar.
+
+- **Section tracking**: As you scroll the preview, the TOC highlights the heading corresponding to the currently visible section.
+- **Navigation**: Click any TOC entry to smooth-scroll the preview to that section. Anchor matching uses a five-level tolerant algorithm so manually written links (`--` vs `-`, `_` vs `-`) resolve correctly even if they do not exactly match the auto-generated ID.
+- **Collapsible**: The TOC panel can be shown or hidden without affecting the preview content or scroll position.
+
+## Link status bar
+
+When you hover over a link in the preview, the bottom-left corner of the window shows the link's actual destination — useful when the display text differs from the URL.
+
+Three icon types distinguish link categories:
+
+| Icon | Link type |
+|---|---|
+| 🔗 | External URL |
+| ⚓ | Internal anchor (`#section-id`) |
+| ✉️ | Email (`mailto:`) |
+
+URL-encoded characters in anchor links are decoded before display: `#%E4%B8%AD%E6%96%87` appears as `⚓ #中文`. If the display text is identical to the raw href, no status bar entry is shown — only links where the label and destination differ trigger the bar.
+
+<CardGroup cols={2}>
+  <Card title="Keyboard shortcuts" icon="keyboard" href="/configuration/keyboard-shortcuts">
+    Full reference for all zoom and navigation shortcuts
+  </Card>
+  <Card title="Export" icon="upload" href="/features/export">
+    Zoom level affects the default font size in PDF export
+  </Card>
+</CardGroup>

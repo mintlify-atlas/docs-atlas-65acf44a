@@ -1,0 +1,134 @@
+---
+title: "FluxMarkdown web renderer: TypeScript Markdown engine"
+description: "How FluxMarkdown's TypeScript web renderer works — markdown-it, Mermaid, KaTeX, and highlight.js bundled with Vite into a single self-contained HTML file."
+---
+
+The web renderer is a TypeScript application built with Vite that converts Markdown text into styled HTML. It runs entirely inside a `WKWebView` hosted by the macOS QuickLook extension. When Swift loads the preview, it calls `window.renderMarkdown(content)` over the JavaScript bridge — the renderer handles parsing, diagram rendering, math typesetting, and syntax highlighting without any network access.
+
+## Entry point and bridge API
+
+The renderer exposes a small set of functions on the `window` object so Swift can drive it over `WKWebView`'s JavaScript bridge.
+
+```typescript
+// Called by Swift on every file open or content change
+window.renderMarkdown(text: string, options?: RenderOptions): Promise<void>
+
+// Called when the system color scheme changes
+window.updateTheme(theme: string): void
+
+// Additional surface area used by the Swift host
+window.renderSource(text, theme, prevContent?)  // raw source view
+window.exportHTML(): string                     // export rendered HTML
+window.setZoomLevel(level: number): void
+window.toggleSearch(): void
+window.toggleHelp(): void
+```
+
+JavaScript logs back to Swift via `window.webkit.messageHandlers.logger.postMessage(message)`. This is the only outbound channel from the renderer to the native layer.
+
+## How Swift loads the renderer
+
+The Swift extension (`PreviewViewController.swift`) loads the compiled bundle using `WKWebView.loadFileURL`:
+
+```swift
+let distURL = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "dist")!
+webView.loadFileURL(distURL, allowingReadAccessTo: distURL.deletingLastPathComponent())
+```
+
+After the page loads, it calls `window.renderMarkdown` with the file contents and a `RenderOptions` object that includes the base URL, theme, and feature flags.
+
+## Tech stack
+
+<CardGroup cols={2}>
+  <Card title="markdown-it" icon="text" href="/dev/renderer/plugins">
+    Core Markdown parser. Configured with `html: true`, `breaks: true`, and `typographer: true`. Extended by a suite of plugins for math, diagrams, and GitHub-flavored syntax.
+  </Card>
+  <Card title="Mermaid 11" icon="diagram-project" href="/dev/renderer/overview">
+    Renders fenced code blocks tagged `mermaid` into SVG diagrams. Loaded as a separate Vite chunk and initialized lazily on first use.
+  </Card>
+  <Card title="KaTeX" icon="function" href="/dev/renderer/overview">
+    Renders LaTeX math expressions inside `$...$` and `$$...$$` delimiters. The plugin is loaded dynamically only when math syntax is detected in the document body.
+  </Card>
+  <Card title="highlight.js" icon="code" href="/dev/renderer/overview">
+    Provides syntax highlighting. Only the languages actually used are imported (tree-shaking), keeping bundle size in check. Over 40 languages are registered.
+  </Card>
+</CardGroup>
+
+<CardGroup cols={2}>
+  <Card title="Vega / Vega-Lite" icon="chart-bar" href="/dev/renderer/overview">
+    Renders JSON-defined statistical charts from `vega` and `vega-lite` code blocks. Loaded lazily when the document contains a matching block.
+  </Card>
+  <Card title="@hpcc-js/wasm-graphviz" icon="circle-nodes" href="/dev/renderer/overview">
+    Renders Graphviz DOT diagrams via WebAssembly. Accepts `dot` or `graphviz` language tags. The WASM module is loaded once and cached in `graphvizInstance`.
+  </Card>
+</CardGroup>
+
+## Build system
+
+The renderer is built with Vite. The output is a single `dist/index.html` file with all JavaScript, CSS, and fonts inlined.
+
+```bash
+cd web-renderer
+npm install          # install dependencies
+npm run build        # production build → dist/index.html
+npm run playground   # dev server on :5174 for local iteration
+```
+
+The `vite.config.ts` splits Mermaid into its own chunk (`manualChunks: { mermaid: ['mermaid'] }`) so the large diagram library is loaded asynchronously and does not block the initial render.
+
+```typescript
+// vite.config.ts (simplified)
+export default defineConfig({
+  base: './',
+  build: {
+    outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          mermaid: ['mermaid'],
+        },
+      },
+    },
+  },
+});
+```
+
+<Note>
+  The compiled `dist/` directory is committed to the repository and referenced directly by the Xcode project. Never edit files in `dist/` by hand — they are build artifacts.
+</Note>
+
+## Performance optimizations
+
+<AccordionGroup>
+  <Accordion title="KaTeX lazy loading">
+    The `@iktakahiro/markdown-it-katex` plugin is imported dynamically (`await import(...)`) and only applied to the markdown-it instance when the document body contains a `$` or `$$` pattern. Documents without math pay no loading cost.
+  </Accordion>
+  <Accordion title="Mermaid singleton">
+    The Mermaid module is stored in a module-level variable (`mermaidInstance`). After the first diagram render it is never re-imported. Theme changes call `mermaid.initialize()` on the existing instance rather than re-loading the module.
+  </Accordion>
+  <Accordion title="highlight.js tree-shaking">
+    Instead of importing the full highlight.js bundle, each language is imported individually from `highlight.js/lib/languages/<lang>` and registered with `hljs.registerLanguage()`. This reduces bundle size significantly compared to `import hljs from 'highlight.js'`.
+  </Accordion>
+  <Accordion title="Vega and Graphviz on demand">
+    Vega/Vega-Lite and the Graphviz WASM module are both loaded lazily inside `renderVegaDiagrams()` and `renderGraphvizDiagrams()` respectively. If no matching code blocks are present in the document, neither module is fetched.
+  </Accordion>
+</AccordionGroup>
+
+## Key source files
+
+| File | Purpose |
+|------|---------|
+| `src/index.ts` | Main entry point. Exports `preprocessMermaidNewlines`. Attaches `window.renderMarkdown`, `window.updateTheme`, and the rest of the bridge API. Orchestrates the full rendering pipeline. |
+| `src/table-of-contents.ts` | `TableOfContents` class. Renders a floating TOC panel from the document outline. |
+| `src/search.ts` | `SearchEngine` — indexes headings and paragraph text for in-page keyword search. |
+| `src/search-ui.ts` | `SearchUI` — keyboard-driven search panel UI wired to `SearchEngine`. |
+| `src/outline.ts` | `extractOutline` — walks markdown-it tokens to produce a heading tree used by the TOC. |
+| `src/blockquote-collapse.ts` | `BlockquoteCollapse` — adds collapse/expand toggles to blockquote elements. |
+| `src/help-overlay.ts` | `HelpOverlay` — the `?` keyboard shortcut help panel. |
+| `src/rtl.ts` | `detectRtlContent` — heuristic detection of RTL scripts (Arabic, Hebrew, etc.) to set `dir="rtl"` on the preview container. |
+| `src/diff-engine.ts` | `computeLineDiff` — computes a line-level diff between two Markdown strings using the `diff` library. |
+| `src/diff-animator.ts` | `DiffAnimator` — annotates the rendered DOM with diff classes and animates changed regions. |
+
+<Card title="Plugin pipeline details" icon="puzzle-piece" href="/dev/renderer/plugins">
+  See the plugins page for a full breakdown of the markdown-it plugin chain and the rendering pipeline order.
+</Card>

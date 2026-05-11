@@ -1,0 +1,177 @@
+---
+title: "Troubleshoot FluxMarkdown QuickLook preview issues"
+description: "Step-by-step fixes for FluxMarkdown QuickLook issues: damaged app warnings, stale cache, unregistered extension, and Mermaid or KaTeX not rendering."
+---
+
+FluxMarkdown works as a macOS QuickLook extension, which means it depends on several system-level registrations to function correctly. When something goes wrong, the symptoms can look identical — a plain-text preview — even when the underlying cause is completely different. Work through the sections below in order, starting with the simplest fix first.
+
+<AccordionGroup>
+
+  <Accordion title='"App is damaged" or "Unidentified developer" warning'>
+    macOS attaches a quarantine attribute to apps downloaded from the internet. This attribute causes Gatekeeper to block FluxMarkdown before it can register its QuickLook extension.
+
+    Open Terminal and run:
+
+    ```bash
+    xattr -cr "/Applications/FluxMarkdown.app"
+    ```
+
+    This removes the quarantine flag from the app and all files inside it. After the command completes, launch FluxMarkdown normally from Applications. You should not see the warning again.
+
+    <Note>
+      This command is safe and only removes the quarantine metadata Apple attaches to downloaded files. It does not modify the app itself.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Preview still shows plain text (QuickLook cache not updated)">
+    macOS caches QuickLook plugin metadata aggressively. Even after FluxMarkdown is correctly installed, the cache may continue routing `.md` files to the built-in plain-text previewer.
+
+    Reset the QuickLook cache and restart Finder with:
+
+    ```bash
+    qlmanage -r && qlmanage -r cache && killall Finder
+    ```
+
+    Wait a few seconds for Finder to relaunch, then select a `.md` file and press Space. If the preview is still plain text, continue to the next section.
+
+    <Tip>
+      If you installed FluxMarkdown via Homebrew Cask, run `brew upgrade --cask flux-markdown` followed by the cache-reset command above to ensure you are on the latest version.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="QuickLook extension not registered">
+    macOS requires the host app to be launched at least once before the system registers its embedded QuickLook extension. The extension will not appear in the plugin registry until that first launch occurs.
+
+    **Step 1 — Launch the app**
+
+    Open FluxMarkdown from your Applications folder. The welcome window appearing is sufficient; you do not need to open a file.
+
+    **Step 2 — Confirm the extension is registered**
+
+    Run the following command in Terminal:
+
+    ```bash
+    pluginkit -m -v
+    ```
+
+    Look for an entry containing `MarkdownPreview` or `markdownquicklook`. If you do not see it, continue to step 3.
+
+    **Step 3 — Enable the extension in System Settings**
+
+    1. Open **System Settings**
+    2. Go to **Extensions** → **Quick Look**
+    3. Make sure the **FluxMarkdown** or **MarkdownPreview** entry is checked
+
+    After enabling the extension, reset the cache:
+
+    ```bash
+    qlmanage -r && qlmanage -r cache && killall Finder
+    ```
+  </Accordion>
+
+  <Accordion title="Extension is registered but preview is still plain text">
+    When `pluginkit` confirms that the extension is registered but Finder still shows plain text, the cause is usually `LSHandlerRank`. macOS selects the QuickLook extension based on which application is declared as the **Owner** handler for the Markdown UTI. If FluxMarkdown is only registered as an `Alternate` handler, macOS ignores it in favour of the system's built-in plain-text previewer.
+
+    FluxMarkdown declares itself as `LSHandlerRank = Owner` for Markdown files. If you are running a custom or development build, verify that `Sources/Markdown/Info.plist` contains:
+
+    ```xml
+    <key>LSHandlerRank</key>
+    <string>Owner</string>
+    ```
+
+    For the standard release build, follow these steps to restore correct behaviour:
+
+    <Steps>
+      <Step title="Rebuild and reinstall">
+        Download the latest DMG from GitHub Releases and drag FluxMarkdown to Applications, replacing the existing copy.
+      </Step>
+      <Step title="Launch the app once">
+        Open FluxMarkdown from Applications so macOS re-registers it as the Owner handler for `.md` files.
+      </Step>
+      <Step title="Reset the QuickLook cache">
+        ```bash
+        qlmanage -r && qlmanage -r cache && killall Finder
+        ```
+      </Step>
+      <Step title="Test the preview">
+        Select a `.md` file in Finder and press Space. The preview should now show rendered Markdown with headings, code blocks, and other formatting.
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="Preview works sometimes but not consistently">
+    Intermittent plain-text previews are almost always a stale QuickLook cache issue. macOS may fall back to the system previewer for certain files or after waking from sleep.
+
+    Clear the cache and restart Finder:
+
+    ```bash
+    qlmanage -r && qlmanage -r cache && killall Finder
+    ```
+
+    If the problem recurs after every restart, check that no other Markdown QuickLook plugins (such as `QLMarkdown` or `qlmarkdown`) are installed alongside FluxMarkdown. Conflicting plugins can cause macOS to choose inconsistently between them.
+
+    <Warning>
+      Having multiple Markdown QuickLook plugins installed at the same time is the most common cause of intermittent previews. Disable or remove competing plugins via System Settings → Extensions → Quick Look.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Diagrams (Mermaid) not rendering">
+    If your preview loads correctly but Mermaid diagrams appear as raw code blocks instead of rendered diagrams, Mermaid rendering may be disabled in Settings.
+
+    1. Open FluxMarkdown
+    2. Press **Cmd+,** to open Settings
+    3. Go to **Rendering**
+    4. Make sure **Mermaid** is toggled on
+
+    FluxMarkdown supports all standard Mermaid diagram types including flowcharts, sequence diagrams, Gantt charts, class diagrams, and more. It also supports direct preview of `.mmd` files.
+
+    <Note>
+      Mermaid diagrams that contain `\n` in unquoted node labels (e.g. `A[line1\nline2]`) are handled automatically — you do not need to quote the labels manually.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Math expressions (KaTeX) not rendering">
+    If inline or block math expressions such as `$E = mc^2$` appear as raw text, KaTeX rendering may be disabled.
+
+    1. Open FluxMarkdown
+    2. Press **Cmd+,** to open Settings
+    3. Go to **Rendering**
+    4. Make sure **KaTeX** is toggled on
+
+    FluxMarkdown supports both inline math (wrapped in single `$`) and block math (wrapped in `$$` or a `tex` code fence). KaTeX is loaded lazily — documents without math expressions are not affected by enabling this setting.
+  </Accordion>
+
+</AccordionGroup>
+
+## Advanced diagnostics
+
+If the steps above do not resolve the issue, the following Terminal commands provide lower-level diagnostic information.
+
+**Check which QuickLook handlers are active for Markdown files:**
+
+```bash
+qlmanage -m | grep -i markdown
+```
+
+**Stream QuickLook system logs in real time** (press Space on a `.md` file in another window to trigger log output):
+
+```bash
+log stream --predicate 'subsystem contains "QuickLook"'
+```
+
+**Confirm the FluxMarkdown extension is registered and check its version:**
+
+```bash
+pluginkit -m -A -D -p com.apple.quicklook.preview | grep markdownquicklook
+```
+
+If `pluginkit` shows the extension but previews still fail, the logs from `log stream` will usually reveal whether the extension is being loaded and what error, if any, is returned.
+
+<CardGroup cols={2}>
+  <Card title="FAQ" icon="circle-question" href="/help/faq">
+    Answers to frequently asked questions about installation and features.
+  </Card>
+  <Card title="Auto-update" icon="rotate" href="/help/auto-update">
+    How FluxMarkdown keeps itself up to date via Sparkle.
+  </Card>
+</CardGroup>

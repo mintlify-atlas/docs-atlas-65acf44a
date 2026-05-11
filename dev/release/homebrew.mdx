@@ -1,0 +1,150 @@
+---
+title: "Distribute FluxMarkdown via Homebrew tap and official cask"
+description: "How FluxMarkdown is distributed through Homebrew — updating the private tap cask and submitting the official homebrew-cask PR for wider distribution."
+---
+
+FluxMarkdown is distributed through Homebrew Cask on two parallel tracks. The **tap cask** (hosted in the `xykong/tap` private tap) ships immediately after every release with the full feature set. The **official homebrew-cask** version is a separately maintained file that conforms to the stricter requirements of the upstream `homebrew/homebrew-cask` repository.
+
+## Two distribution tracks
+
+<Tabs>
+  <Tab title="Tap cask (full-featured)">
+    The tap cask is the primary distribution channel. It supports all features and updates automatically via Sparkle.
+
+    **Install command:**
+    ```bash
+    brew install --cask xykong/tap/flux-markdown
+    ```
+
+    **Features enabled:**
+    - `auto_updates true` — the app self-updates via Sparkle without requiring Homebrew
+    - `depends_on formula: "duti"` — installs `duti` to configure default file associations
+    - Postflight block sets Markdown files to open with FluxMarkdown by default
+    - Livecheck reads `appcast.xml` for new version detection
+
+    **Cask file location:** `../homebrew-tap/Casks/flux-markdown.rb`
+  </Tab>
+  <Tab title="Official homebrew-cask">
+    The official cask conforms to the submission requirements of `homebrew/homebrew-cask`. It drops features that upstream does not allow.
+
+    **Install command (once accepted):**
+    ```bash
+    brew install --cask flux-markdown
+    ```
+
+    **Differences from the tap cask:**
+
+    | Field | Tap cask | Official cask |
+    |-------|----------|--------------|
+    | `auto_updates` | `true` | Not allowed by upstream |
+    | `depends_on formula: "duti"` | Present | Not allowed — casks cannot depend on formulae |
+    | Default file association | Set in postflight | Removed |
+    | Livecheck | Sparkle + `appcast.xml` | GitHub Latest |
+
+    **Draft file location:** `../homebrew-tap/Casks/flux-markdown-official.rb`
+  </Tab>
+</Tabs>
+
+## Updating the tap cask
+
+After every release, run the update script to apply the new version and SHA256 checksum to the tap cask:
+
+```bash
+./scripts/update-homebrew-cask.sh
+```
+
+The script:
+1. Reads the version from `build/artifacts/FluxMarkdown.dmg`
+2. Computes the SHA256: `shasum -a 256 build/artifacts/FluxMarkdown.dmg`
+3. Updates `version` and `sha256` in both `flux-markdown.rb` and `flux-markdown-official.rb`
+4. Commits and pushes to the `homebrew-tap` repository
+
+To verify the update manually:
+
+```bash
+brew update
+brew upgrade --cask flux-markdown          # tap version
+# or
+brew upgrade --cask xykong/tap/flux-markdown
+```
+
+## Submitting to official homebrew-cask
+
+### First-time submission
+
+Before submitting, ensure:
+- The current release is published on GitHub
+- `./scripts/update-homebrew-cask.sh` has been run
+- `brew style ../homebrew-tap/Casks/flux-markdown-official.rb` reports no errors
+- The app is GPL-3.0 licensed (required for inclusion in the official tap)
+
+Run the submission script:
+
+```bash
+./scripts/submit-to-homebrew.sh
+```
+
+The script automates: fork → clone → sync upstream → create branch → copy cask → style check → commit → create PR against `homebrew/homebrew-cask`.
+
+### Subsequent version updates
+
+After the first PR is merged, Homebrew's `BrewTestBot` monitors the livecheck URL and automatically opens a PR when a new version is detected. You only need to approve it:
+
+```
+@BrewTestBot approved
+```
+
+If the bot does not pick up the new version within a few days, submit a manual update PR:
+
+```bash
+VERSION="1.14.152"
+SHA256=$(shasum -a 256 build/artifacts/FluxMarkdown.dmg | awk '{print $1}')
+
+cd ~/your-fork/homebrew-cask
+git fetch upstream && git merge upstream/master
+git checkout -b "bump-flux-markdown-${VERSION}"
+
+sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/f/flux-markdown.rb
+sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/f/flux-markdown.rb
+
+brew style Casks/f/flux-markdown.rb
+
+git add Casks/f/flux-markdown.rb
+git commit -m "flux-markdown ${VERSION}"
+gh pr create \
+  --repo Homebrew/homebrew-cask \
+  --title "flux-markdown ${VERSION}" \
+  --body "Version bump."
+```
+
+## GPL-3.0 license requirement
+
+The official `homebrew/homebrew-cask` repository requires all submitted casks to be open-source. FluxMarkdown is licensed under GPL-3.0, which satisfies this requirement. Include a link to the license in the PR description when submitting for the first time.
+
+## User update instructions
+
+Users on either distribution track update with the same command:
+
+```bash
+brew update && brew upgrade --cask flux-markdown
+```
+
+Users switching from the official cask to the tap version (to get the full feature set):
+
+```bash
+brew uninstall --cask flux-markdown
+brew install --cask xykong/tap/flux-markdown
+```
+
+<Info>
+  Both versions install the same `.app` bundle. The only differences are in the Homebrew cask metadata (auto-update support and default file associations). The app binary is identical.
+</Info>
+
+<CardGroup cols={2}>
+  <Card title="Release process" icon="tag" href="/dev/release/release-process">
+    Version numbering, CHANGELOG, DMG build, and GitHub release steps.
+  </Card>
+  <Card title="Renderer overview" icon="window" href="/dev/renderer/overview">
+    How the TypeScript web renderer works inside the macOS QuickLook extension.
+  </Card>
+</CardGroup>

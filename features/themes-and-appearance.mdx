@@ -1,0 +1,112 @@
+---
+title: "Themes in FluxMarkdown: light, dark, system, and fonts"
+description: "Switch between light, dark, and system-synced themes in FluxMarkdown, pick a code highlight palette, adjust font size, and set the interface language."
+---
+
+FluxMarkdown gives you full control over how previews look. You can choose a global theme, pick a syntax highlighting palette for code blocks, adjust the base font size, and set the interface language — all from the Settings window (`Cmd+,`).
+
+## Theme modes
+
+Three theme modes are available under **Settings → Appearance**:
+
+<CardGroup cols={3}>
+  <Card title="Light" icon="sun" href="/configuration/settings">
+    Forces the light GitHub Markdown stylesheet regardless of the macOS system setting. Best for bright environments or when exporting PDFs meant for print.
+  </Card>
+  <Card title="Dark" icon="moon" href="/configuration/settings">
+    Forces the dark palette. Code blocks use high-contrast GitHub Dark token colours that are injected automatically when the GitHub highlight theme is selected.
+  </Card>
+  <Card title="System" icon="monitor" href="/configuration/settings">
+    Tracks macOS system appearance in real time. When you switch between Light and Dark in System Settings, the preview updates immediately without reopening the file.
+  </Card>
+</CardGroup>
+
+### How system sync works
+
+FluxMarkdown observes `view.effectiveAppearance` via KVO in the QuickLook extension and monitors `NSAppearance` in the standalone app. When the OS appearance changes, `window.updateTheme()` is called in the web renderer — this updates the `data-theme` attribute on `<html>` without triggering a full re-render.
+
+This means **scroll position, TOC expansion state, open blockquotes, and the entire DOM are preserved** when you switch themes. No flash, no scroll reset.
+
+<Note>
+The theme toggle button in the toolbar adapts its own background and foreground colours to remain visible in both light and dark modes.
+</Note>
+
+## Code highlighting themes
+
+The code highlight theme controls the colour palette used inside fenced code blocks. Choose one under **Settings → Editor → Code highlight theme**:
+
+<AccordionGroup>
+  <Accordion title="Default" defaultOpen>
+    The built-in Highlight.js default palette — neutral and readable in both light and dark contexts.
+  </Accordion>
+  <Accordion title="GitHub">
+    Matches the GitHub.com syntax colouring. In light mode it uses the standard GitHub light palette; in dark mode, FluxMarkdown automatically injects GitHub Dark override rules so keywords, strings, and functions use the correct high-contrast GitHub Dark colours.
+
+    ```python
+    # GitHub theme — light mode
+    def greet(name: str) -> str:
+        return f"Hello, {name}!"
+    ```
+  </Accordion>
+  <Accordion title="Monokai">
+    The classic Monokai palette popularised by Sublime Text. Dark background (`#272822`) with vivid accent colours.
+
+    ```typescript
+    // Monokai theme
+    const greet = (name: string): string => `Hello, ${name}!`;
+    ```
+  </Accordion>
+  <Accordion title="Atom One Dark">
+    The Atom One Dark colour scheme. Dark background (`#282c34`) with muted but distinct token colours.
+
+    ```go
+    // Atom One Dark theme
+    func greet(name string) string {
+        return fmt.Sprintf("Hello, %s!", name)
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+Switching the code highlight theme does not cause a full page re-render. The new theme CSS is injected into a `<style>` tag and takes effect immediately.
+</Tip>
+
+## Font size
+
+Adjust the base font size under **Settings → Editor → Font size**. The value controls the `font-size` property on the document body. All spacing defined in `em` or `rem` units scales proportionally.
+
+You can also adjust font size live with keyboard shortcuts:
+
+| Shortcut | Action |
+|---|---|
+| `Cmd+` `+` | Zoom in (increases page zoom) |
+| `Cmd+` `-` | Zoom out |
+| `Cmd+0` | Reset to 100% |
+
+Font size set in Settings is the base size; the page zoom level set with `Cmd+`+`/`-`` is applied on top of it. When you export to PDF, the save panel shows the combined effective visual size (base × zoom) as the default slider value.
+
+See [Zoom and navigation](/features/zoom-and-navigation) for full zoom details.
+
+## Language and locale
+
+The FluxMarkdown interface supports four languages, selectable under **Settings → Appearance → Language**:
+
+| Option | Description |
+|---|---|
+| System default | Follows the macOS language preference |
+| English | Forces the English UI |
+| 中文 (Chinese) | Forces Simplified Chinese |
+| Deutsch (German) | Forces German |
+| Français (French) | Forces French |
+
+The language setting takes effect immediately for most UI elements (toolbar buttons, Settings labels, toast messages). AppKit native elements (menu bar, Sparkle update window) apply on next launch — Settings shows a "Restart now" prompt when that is the case.
+
+<CardGroup cols={2}>
+  <Card title="Keyboard shortcuts" icon="keyboard" href="/configuration/keyboard-shortcuts">
+    Full reference for all keyboard shortcuts
+  </Card>
+  <Card title="Export" icon="upload" href="/features/export">
+    Theme choice affects PDF and HTML export output
+  </Card>
+</CardGroup>

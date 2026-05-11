@@ -1,0 +1,238 @@
+---
+title: "Build FluxMarkdown from source: Swift, XcodeGen, and Vite"
+description: "Install Xcode, XcodeGen, and Node.js, then build FluxMarkdown from source. Covers make targets, web renderer dev loop, debugging, and TDD conventions."
+---
+
+FluxMarkdown is built from two independent layers — a native Swift QuickLook extension and a TypeScript rendering engine — that are combined at build time. This guide walks you through installing the required tools, generating the Xcode project, and running the app locally. It also covers the web renderer development loop and how to debug both layers.
+
+## Prerequisites
+
+Before you begin, make sure your machine meets the following requirements:
+
+<AccordionGroup>
+  <Accordion title="macOS 11 or later" icon="apple" defaultOpen>
+    The deployment target is macOS 11.0. Xcode 14 or later is recommended to ensure compatibility with the Swift concurrency model used in `PreviewViewController`.
+  </Accordion>
+  <Accordion title="Xcode" icon="hammer">
+    Install Xcode from the Mac App Store or from [developer.apple.com](https://developer.apple.com/xcode/). Command Line Tools alone are not sufficient — the full Xcode installation is required for code signing and App Sandbox entitlements.
+  </Accordion>
+  <Accordion title="XcodeGen" icon="wand-magic-sparkles">
+    XcodeGen generates `FluxMarkdown.xcodeproj` from `project.yml`. The generated project file is excluded from version control; you must run `make generate` before opening the project in Xcode.
+
+    ```bash
+    brew install xcodegen
+    ```
+  </Accordion>
+  <Accordion title="Node.js" icon="node-js">
+    The web renderer is a Vite/TypeScript project. Node.js 18 or later is recommended. The exact version is not pinned, but `npm install` will warn about engine mismatches.
+
+    ```bash
+    brew install node
+    # or use nvm / fnm for version management
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Set up from scratch
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/xykong/flux-markdown.git
+    cd flux-markdown
+    ```
+  </Step>
+  <Step title="Verify prerequisites">
+    Confirm that both `xcodegen` and `node` are available on your `PATH`:
+
+    ```bash
+    xcodegen version
+    node --version
+    npm --version
+    ```
+
+    If `xcodegen` is missing, install it with `brew install xcodegen`. If Node.js is missing, install it with `brew install node`.
+  </Step>
+  <Step title="Generate the Xcode project">
+    A single `make` target builds the web renderer and generates the Xcode project:
+
+    ```bash
+    make generate
+    ```
+
+    This does the following in order:
+    1. Runs `npm install` and `npm run build` inside `web-renderer/`, producing `web-renderer/dist/index.html`.
+    2. Reads the current version from `.version`.
+    3. Runs `xcodegen generate`, creating `FluxMarkdown.xcodeproj`.
+
+    <Note>
+      You must re-run `make generate` whenever you add or remove source files, or after pulling changes that modify `project.yml`.
+    </Note>
+  </Step>
+  <Step title="Open in Xcode and run">
+    ```bash
+    open FluxMarkdown.xcodeproj
+    ```
+
+    Select the **Markdown** scheme and the **My Mac** destination, then press **Run** (⌘R). Xcode will build both the Host App and the embedded QuickLook extension.
+  </Step>
+  <Step title="Test with qlmanage">
+    After a successful build, verify that the QuickLook extension works from the command line:
+
+    ```bash
+    qlmanage -p path/to/file.md
+    ```
+
+    This launches QuickLook in isolation, bypassing Finder caching. If the preview does not appear, reset the QuickLook cache:
+
+    ```bash
+    qlmanage -r
+    qlmanage -r cache
+    ```
+  </Step>
+</Steps>
+
+## Build commands reference
+
+All top-level build tasks are defined in the `Makefile`. Run these from the repository root.
+
+| Command | Description |
+|---|---|
+| `make generate` | Build the web renderer and generate `FluxMarkdown.xcodeproj` from `project.yml`. Always run this after modifying `project.yml` or pulling changes. |
+| `make build_renderer` | Build the TypeScript renderer only (`npm install && npm run build` in `web-renderer/`). |
+| `make app` | Run `make generate` then build the macOS app with `xcodebuild` (Release configuration). |
+| `make install` | Build and install the app locally. Calls `./scripts/install.sh`, which clears the QuickLook daemon cache so the new extension is picked up immediately. |
+| `make release [major\|minor\|patch]` | Increment the version in `.version`, update `CHANGELOG.md`, build a DMG, and create a GitHub release. |
+
+<Warning>
+  Do not commit `FluxMarkdown.xcodeproj`. It is generated and excluded from version control via `.gitignore`. Always commit `project.yml` instead. If you need to add files, targets, or build settings, edit `project.yml` and regenerate.
+</Warning>
+
+## Web renderer development workflow
+
+The TypeScript renderer can be developed and tested independently of the Swift layer. The Vite dev server provides a fast feedback loop for renderer changes.
+
+### Install dependencies
+
+```bash
+cd web-renderer
+npm install
+```
+
+### Run tests
+
+Tests are written with Jest and must pass before committing any renderer changes:
+
+```bash
+npm test
+```
+
+<Tip>
+  Write tests before implementing new rendering logic. The project follows a test-driven development workflow: start with a failing Jest test that specifies the expected output, then implement the feature until the test passes.
+</Tip>
+
+### Production build
+
+```bash
+npm run build
+```
+
+Vite bundles all JavaScript, CSS, and fonts into `dist/index.html` using `vite-plugin-singlefile`. This file is what Xcode packages into the app bundle.
+
+### Playground (Vite dev server)
+
+For rapid iteration on rendering output without rebuilding the Swift app:
+
+```bash
+npm run playground
+```
+
+This starts a local Vite development server at `http://localhost:5174`. Edit `web-renderer/src/index.ts` or the CSS files and the browser will reload automatically.
+
+<Note>
+  The playground runs in a normal browser context, not inside `WKWebView`. Calls to `window.webkit.messageHandlers` are no-ops in the browser, so logging via the JS bridge will be silently skipped. Use `console.log` during playground development and the `os_log` bridge in production code.
+</Note>
+
+### Development loop for renderer + Swift
+
+When a renderer change is ready to test inside the actual QuickLook panel:
+
+1. Run `npm run build` inside `web-renderer/`.
+2. Run `make install` from the repository root.
+3. Test with `qlmanage -p path/to/file.md`.
+
+There is no hot-reload between the Swift and TypeScript layers. Each iteration requires a fresh build and install.
+
+## Debugging
+
+### WKWebView: Safari Web Inspector
+
+You can attach Safari's Web Inspector to the `WKWebView` running inside the QuickLook extension:
+
+1. In Safari, enable **Develop** menu: **Safari → Settings → Advanced → Show features for web developers**.
+2. Open a QuickLook preview (press Space on a `.md` file in Finder, or use `qlmanage -p`).
+3. In Safari, go to **Develop → [Your Mac] → FluxMarkdown**.
+4. Use the Console, Sources, and Network tabs to inspect the renderer.
+
+### Swift: os_log and the JS bridge
+
+The Swift extension uses `os_log` throughout `PreviewViewController.swift`. Messages are tagged with the subsystem `com.markdownquicklook.app`. To stream logs in real time:
+
+```bash
+log stream --predicate 'subsystem == "com.markdownquicklook.app"' --level debug
+```
+
+JavaScript can write to the same log stream via the `logger` message handler:
+
+```typescript
+// Inside web-renderer/src/index.ts
+window.webkit?.messageHandlers?.logger?.postMessage("renderMarkdown called");
+```
+
+<Info>
+  Do not rely solely on `console.log` for production diagnostics. Log entries written via `console.log` are not captured by the macOS unified logging system and will not appear in `log stream` output.
+</Info>
+
+### Checking extension registration
+
+If QuickLook is not using the installed extension, verify that macOS has picked it up:
+
+```bash
+pluginkit -m -v -i com.xykong.Markdown.QuickLook
+```
+
+A registered extension will appear in the output. If it is missing, run `make install` (which clears the QuickLook daemon cache) and wait a few seconds before retrying.
+
+## Conventions
+
+<CardGroup cols={2}>
+  <Card title="TDD for the renderer" icon="vial" href="/dev/renderer/testing">
+    Always write a Jest test before implementing renderer logic. Run `npm test` before every commit to `web-renderer/`.
+  </Card>
+  <Card title="Never commit .xcodeproj" icon="ban" href="/dev/architecture">
+    `FluxMarkdown.xcodeproj` is generated by XcodeGen. Edit `project.yml` and regenerate instead.
+  </Card>
+  <Card title="No manual build numbers" icon="gear" href="/dev/release/release-process">
+    Version and build numbers are managed by `make release` and the `.version` file. Never set them by hand.
+  </Card>
+  <Card title="Doc-first for hard problems" icon="book" href="/dev/architecture">
+    Create a `docs/debug/DEBUG_*.md` file before debugging a complex issue. Record findings and decisions as you go.
+  </Card>
+</CardGroup>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Architecture overview" icon="sitemap" href="/dev/architecture">
+    How the Swift host and TypeScript renderer fit together.
+  </Card>
+  <Card title="Web renderer overview" icon="layer-group" href="/dev/renderer/overview">
+    Deep dive into the rendering pipeline and plugin system.
+  </Card>
+  <Card title="Renderer testing" icon="flask" href="/dev/renderer/testing">
+    How to write and run Jest tests for the renderer.
+  </Card>
+  <Card title="Release process" icon="rocket" href="/dev/release/release-process">
+    How to cut a new release and update Homebrew casks.
+  </Card>
+</CardGroup>

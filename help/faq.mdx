@@ -1,0 +1,110 @@
+---
+title: "FluxMarkdown FAQ: installation, features, and licensing"
+description: "Frequently asked questions about FluxMarkdown — iCloud Drive support, live preview, image rendering, Apple Silicon, licensing, and how to report bugs."
+---
+
+This page collects the questions that come up most often from FluxMarkdown users. If your question is not answered here, check the [troubleshooting guide](/help/troubleshooting) or open an issue on [GitHub](https://github.com/xykong/flux-markdown/issues).
+
+<AccordionGroup>
+
+  <Accordion title="Does FluxMarkdown work with iCloud Drive or Dropbox files?">
+    Yes. FluxMarkdown works with any `.md` file that appears as a regular file in Finder, regardless of where it is stored — local disk, iCloud Drive, Dropbox, or any other cloud storage provider that uses a Finder integration.
+
+    The QuickLook extension reads the file using the standard macOS file access path. As long as the file is downloaded and available locally (i.e. not still syncing or stored online-only), the preview will work normally.
+
+    <Note>
+      If a file is in an "online only" state (shown with a cloud icon in Finder), macOS may need to download it before QuickLook can render a preview. Wait for the sync to complete, then press Space again.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Can I use FluxMarkdown without installing the main app?">
+    No. The QuickLook extension is bundled inside `FluxMarkdown.app` and is registered by the operating system only after the host app has been launched at least once. The extension cannot be extracted and run independently.
+
+    You must:
+
+    1. Install `FluxMarkdown.app` to `/Applications/`
+    2. Launch it once so macOS registers the embedded QuickLook extension
+    3. Optionally enable it under System Settings → Extensions → Quick Look
+
+    After that initial setup, you do not need to keep the app open — the extension runs as a standalone process invoked by QuickLook on demand.
+  </Accordion>
+
+  <Accordion title="Why does the preview reload every time I switch to another file?">
+    This is expected behaviour. macOS QuickLook creates a new preview session each time you select a different file in Finder. FluxMarkdown renders the newly selected file from scratch on each invocation.
+
+    If you want to view multiple Markdown files side by side or maintain scroll position while switching between files, open them in the main FluxMarkdown app (double-click a `.md` file, or drag it to the welcome window). The app preserves scroll position and remembers the last-viewed file across sessions.
+  </Accordion>
+
+  <Accordion title="Does FluxMarkdown support images in Markdown?">
+    Yes. Images referenced in Markdown are displayed in the preview provided the image files are accessible from the same location as the Markdown file.
+
+    Supported formats include GIF, PNG, JPG, SVG, and WebP. When exporting to HTML (`Cmd+Shift+E`), images are automatically converted to base64 Data URIs so the exported file is fully self-contained and can be shared without the original image files.
+
+    <Note>
+      Due to macOS App Sandbox restrictions, the QuickLook extension has read-only access to files in the same directory as the Markdown file. Images stored in parent directories or unrelated paths may not load in the QuickLook preview, though they will load when the file is opened in the main app.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Can I customize the CSS or appearance beyond the built-in themes?">
+    FluxMarkdown provides three built-in themes — Light, Dark, and System — switchable via Settings (`Cmd+,`) → Appearance, or directly from the preview toolbar. Code block syntax highlighting also has multiple themes to choose from: Default, GitHub, Monokai, and Atom One Dark.
+
+    Custom CSS injection is not currently supported. If you need a specific appearance customization, you can open a feature request on the [GitHub Issues page](https://github.com/xykong/flux-markdown/issues).
+  </Accordion>
+
+  <Accordion title="Is FluxMarkdown free to use?">
+    FluxMarkdown is dual-licensed:
+
+    **GPL-3.0 (free)** — Personal use, educational use, and open-source projects can use FluxMarkdown at no cost. Any modifications to the source code must be released under GPL-3.0.
+
+    **Commercial license** — Required for closed-source or proprietary products that distribute FluxMarkdown or derivative works without open-sourcing their modifications. Contact **xy.kong@gmail.com** for commercial licensing inquiries.
+
+    For the vast majority of users — individuals previewing Markdown files on their own machine — FluxMarkdown is completely free.
+  </Accordion>
+
+  <Accordion title="Does FluxMarkdown support live preview while editing?">
+    FluxMarkdown supports automatic preview refresh when a file is modified by an external editor. The app uses `DispatchSource` to watch for file system events (writes, renames, deletions) and re-renders the preview automatically after each save. This is compatible with editors that use atomic writes (writing to a temporary file and then renaming), such as Vim and Emacs.
+
+    A manual reload is also available via the Reload button in the toolbar or the `Cmd+R` keyboard shortcut.
+
+    Live simultaneous editing and previewing within FluxMarkdown itself is not supported — FluxMarkdown is a previewer, not an editor. Use your preferred text editor alongside the FluxMarkdown app window.
+  </Accordion>
+
+  <Accordion title="Why does my Mermaid diagram not render?">
+    There are two common reasons:
+
+    **Mermaid is disabled in Settings.** Open Settings (`Cmd+,`), go to Rendering, and make sure Mermaid is toggled on.
+
+    **The diagram syntax contains an error.** Mermaid is strict about syntax. A malformed diagram will usually display nothing or show an error message inside the diagram area. Double-check the diagram against the [Mermaid documentation](https://mermaid.js.org/).
+
+    FluxMarkdown also supports `.mmd` files directly — you can press Space on a `.mmd` file in Finder to preview it as a Mermaid diagram.
+
+    <Tip>
+      AI-generated Mermaid diagrams often use `\n` inside unquoted node labels (e.g. `A[line1\nline2]`). FluxMarkdown handles this automatically, so you do not need to add quotes around node labels to get correct line breaks.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Can I use FluxMarkdown on Apple Silicon (M1/M2/M3)?">
+    Yes. FluxMarkdown is a native macOS app and runs on both Apple Silicon and Intel Macs. The distributed DMG contains a universal binary that runs natively on both architectures — no Rosetta 2 translation is needed on M1/M2/M3 machines.
+  </Accordion>
+
+  <Accordion title="How do I report a bug or request a feature?">
+    Open an issue on the [GitHub Issues page](https://github.com/xykong/flux-markdown/issues). When reporting a bug, include:
+
+    - Your macOS version
+    - Your FluxMarkdown version (visible in the top-right corner of the preview window)
+    - A description of what you expected to happen and what actually happened
+    - If relevant, the Markdown content that triggers the issue (or a minimal reproduction)
+
+    For feature requests, describe the use case and why the existing behaviour does not cover it. Community contributions via pull request are also welcome.
+  </Accordion>
+
+</AccordionGroup>
+
+<CardGroup cols={2}>
+  <Card title="Troubleshooting" icon="wrench" href="/help/troubleshooting">
+    Step-by-step fixes for the most common QuickLook preview issues.
+  </Card>
+  <Card title="Auto-update" icon="rotate" href="/help/auto-update">
+    How FluxMarkdown updates itself and what to do if it fails.
+  </Card>
+</CardGroup>

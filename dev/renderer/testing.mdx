@@ -1,0 +1,208 @@
+---
+title: "Test the FluxMarkdown web renderer with Jest and jsdom"
+description: "How to write and run Jest tests for the FluxMarkdown TypeScript renderer using jsdom, ts-jest, and the project's TDD-first conventions."
+---
+
+The web renderer follows a strict test-driven development policy: tests must be written before the implementation they cover. All rendering logic, plugin behavior, and UI interactions live in `web-renderer/test/` and run with Jest under a jsdom environment that simulates the browser DOM available to the WebView.
+
+## Test setup
+
+The test suite is configured in `web-renderer/jest.config.js`:
+
+```javascript
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'jest-environment-jsdom',
+  moduleNameMapper: {
+    '\\.(css|less|scss|sass)$': '<rootDir>/test/styleMock.js',
+    '^markdown-it$': '<rootDir>/node_modules/markdown-it/dist/markdown-it.js',
+    '^markdown-it-github-alerts$': '<rootDir>/test/__mocks__/markdown-it-github-alerts.js',
+    '^vega$': '<rootDir>/test/__mocks__/vega.js',
+    '^vega-lite$': '<rootDir>/test/__mocks__/vega-lite.js',
+    '^@hpcc-js/wasm-graphviz$': '<rootDir>/test/__mocks__/@hpcc-js/wasm-graphviz.js'
+  },
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tsconfig.json' }]
+  }
+};
+```
+
+Key points:
+
+- **`ts-jest`** compiles TypeScript test files without a separate build step.
+- **`jest-environment-jsdom`** provides a browser-like DOM (`document`, `window`, etc.) so tests can import `src/index.ts` and call `window.renderMarkdown` directly.
+- CSS imports are mapped to an empty mock (`styleMock.js`) so style sheets do not cause import errors.
+- Heavy browser-only modules (Vega, Graphviz, the GitHub alerts plugin) are replaced with lightweight mocks in `test/__mocks__/`.
+
+## Running tests
+
+```bash
+cd web-renderer
+npm test
+```
+
+To run a specific test file:
+
+```bash
+npm test -- test/mermaid-newline.test.ts
+```
+
+To watch for changes during development:
+
+```bash
+npm test -- --watch
+```
+
+Tests also run automatically as part of the top-level `make` pipeline when you run `make build_renderer`.
+
+## Test file location
+
+All test files live in `web-renderer/test/`. The directory currently contains 28 test files covering:
+
+| File | What it tests |
+|------|--------------|
+| `renderer.test.ts` | `window.renderMarkdown` — Mermaid rendering, image path resolution, base64 preservation |
+| `mermaid-newline.test.ts` | `preprocessMermaidNewlines` — all bracket types, quoted labels, participant aliases |
+| `anchor-matching.test.ts` | Five-level tolerant anchor matching for CJK, AI-generated, and mixed slugs |
+| `diff-engine.test.ts` | Line-level diff computation |
+| `diff-animator.test.ts` | DOM annotation and animation for changed lines |
+| `diff-integration.test.ts` | Full diff pipeline integration |
+| `github-alerts.test.ts` | `> [!NOTE]` / `> [!WARNING]` callout rendering |
+| `extended-syntax.test.ts` | Task lists, footnotes, subscript, superscript, mark |
+| `code-highlight.test.ts` | Syntax highlighting, language aliases, fallback behavior |
+| `outline.test.ts` | `extractOutline` heading tree extraction |
+| `table-of-contents.test.ts` | TOC panel render and update |
+| `yaml-frontmatter.test.ts` | YAML frontmatter table rendering and parse error fallback |
+| `rtl.test.ts` | RTL script detection heuristics |
+| `theme-switching.test.ts` | `window.updateTheme` and dark/light attribute application |
+| `zoom.test.ts` | `window.setZoomLevel` clamping and CSS variable |
+| `line-numbers.test.ts` | Code block line number wrapping |
+| `blockquote-collapse.test.ts` | Collapse/expand toggle logic |
+| `help-overlay.test.ts` | Help panel show/hide |
+| `source-view-dark-contrast.test.ts` | Source view dark mode contrast |
+
+## TDD requirement
+
+The project `.clinerules` file mandates test-first development:
+
+> Write tests before implementation. If the test cannot be written yet (because the API does not exist), write a failing test with a `TODO` comment explaining what it should verify.
+
+This applies to all rendering logic, plugin behavior changes, and any new utility function added to `src/`.
+
+## Example test patterns
+
+### Testing `window.renderMarkdown`
+
+Import `src/index.ts` as a side-effect to register the function on `window`, set up a DOM element, then call the function and assert on the resulting HTML:
+
+```typescript
+jest.mock('mermaid', () => ({
+  initialize: jest.fn(),
+  render: jest.fn().mockResolvedValue({ svg: '<svg>mocked</svg>' }),
+}));
+
+import '../src/index';
+
+describe('Markdown Renderer', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '<div id="markdown-preview"></div>';
+    jest.clearAllMocks();
+  });
+
+  test('resolves relative image paths to local-md:// scheme', async () => {
+    await window.renderMarkdown('![img](./pic.png)', { baseUrl: '/Users/me/docs' });
+
+    const img = document.querySelector('#markdown-preview img');
+    expect(img?.getAttribute('src')).toBe('local-md:///Users/me/docs/pic.png');
+  });
+});
+```
+
+### Testing a pure function
+
+Functions exported from `src/index.ts` (such as `preprocessMermaidNewlines`) can be imported directly without any DOM setup:
+
+```typescript
+import { preprocessMermaidNewlines } from '../src/index';
+
+describe('preprocessMermaidNewlines', () => {
+  test('converts \\n in unquoted square-bracket labels', () => {
+    expect(preprocessMermaidNewlines('A[line1\\nline2]'))
+      .toBe('A[line1<br/>line2]');
+  });
+
+  test('handles empty input', () => {
+    expect(preprocessMermaidNewlines('')).toBe('');
+  });
+});
+```
+
+### Testing anchor matching
+
+The anchor-matching logic in `src/index.ts` is not exported, so `anchor-matching.test.ts` copies the helper functions and tests the algorithm independently. This is the preferred pattern when testing private logic that cannot easily be extracted:
+
+```typescript
+describe('Anchor Matching with Five-Level Tolerant Strategy', () => {
+  // Local copies of the private helpers
+  function compressMultipleHyphens(text: string): string {
+    return text.replace(/-+/g, '-');
+  }
+
+  // ... mock implementation of findElementByAnchor ...
+
+  it('should match AI-generated anchors that omit hyphens at CJK boundaries', () => {
+    const availableIds = ['故障-6-镜像拉取卡死-containerd-ingest-残留'];
+    expect(findElementByAnchorMock('故障-6镜像拉取卡死containerd-ingest-残留', availableIds))
+      .toBe('故障-6-镜像拉取卡死-containerd-ingest-残留');
+  });
+});
+```
+
+## Adding a new test
+
+<Steps>
+  <Step title="Create the test file">
+    Add a file in `web-renderer/test/`. Use the `kebab-case.test.ts` naming convention that matches the source file you are testing (e.g., `my-feature.test.ts` for `src/my-feature.ts`).
+  </Step>
+  <Step title="Set up the DOM if needed">
+    If your test calls `window.renderMarkdown` or touches the DOM, add a `beforeEach` block:
+
+    ```typescript
+    beforeEach(() => {
+      document.body.innerHTML = '<div id="markdown-preview"></div>';
+    });
+    ```
+  </Step>
+  <Step title="Import the source module">
+    For side-effect imports (to register `window.*` functions):
+
+    ```typescript
+    import '../src/index';
+    ```
+
+    For named exports:
+
+    ```typescript
+    import { myFunction } from '../src/my-module';
+    ```
+  </Step>
+  <Step title="Write the failing test first">
+    Run `npm test` and confirm the test fails before writing the implementation.
+  </Step>
+  <Step title="Implement the feature and make the test pass">
+    Write the minimum implementation to make the test green, then refactor.
+  </Step>
+</Steps>
+
+<Tip>
+  Heavy dependencies like Mermaid, Vega, and Graphviz must be mocked in Jest because they rely on browser APIs not available in jsdom. Place mock files in `test/__mocks__/` following the existing pattern. The `moduleNameMapper` in `jest.config.js` routes the import to your mock.
+</Tip>
+
+<CardGroup cols={2}>
+  <Card title="Renderer overview" icon="circle-info" href="/dev/renderer/overview">
+    Architecture, tech stack, and key source files.
+  </Card>
+  <Card title="Plugin pipeline" icon="puzzle-piece" href="/dev/renderer/plugins">
+    markdown-it plugins and the rendering pipeline order.
+  </Card>
+</CardGroup>

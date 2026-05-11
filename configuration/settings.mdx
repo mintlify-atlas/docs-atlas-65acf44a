@@ -1,0 +1,138 @@
+---
+title: "Configure FluxMarkdown: appearance, rendering, and editor"
+description: "Configure FluxMarkdown via the Settings window (Cmd+,) — control theme, language, Mermaid, KaTeX, emoji, line numbers, font size, and code highlight theme."
+---
+
+The **Settings** window is where you control every aspect of how FluxMarkdown looks and behaves. Open it by pressing **Cmd+,** in the FluxMarkdown main app, or by selecting **FluxMarkdown → Settings** from the menu bar. Settings are saved automatically as you change them — most take effect immediately without restarting the app.
+
+<Note>
+  The Settings window is only accessible from the **main FluxMarkdown app**. QuickLook previews run inside a system-controlled process where **Cmd+,** is intercepted by macOS and does not open Settings. To adjust settings, double-click any Markdown file to open it in the main app first.
+</Note>
+
+The Settings window has three sections: **Appearance**, **Rendering**, and **Editor**. Use the sidebar on the left to switch between them.
+
+## Appearance
+
+Control the visual theme and interface language.
+
+<AccordionGroup>
+  <Accordion title="Theme">
+    Choose how FluxMarkdown renders light and dark colors across the preview and UI chrome.
+
+    | Option | Description |
+    |--------|-------------|
+    | **Light** | Always use a light background, regardless of your macOS appearance setting. |
+    | **Dark** | Always use a dark background, regardless of your macOS appearance setting. |
+    | **System** | Follow your macOS system appearance. When you switch between Light and Dark in **System Settings → Appearance**, FluxMarkdown updates automatically without a reload. |
+
+    Theme changes take effect immediately — no restart or page reload required. In the QuickLook extension, the theme button in the top-right corner of the preview window lets you cycle through Light → Dark → System directly, without opening Settings.
+  </Accordion>
+
+  <Accordion title="Language">
+    Choose the interface language used throughout the FluxMarkdown app, including menu items, Settings labels, toast messages, and the help panel.
+
+    | Option | Language |
+    |--------|----------|
+    | **System Default** | Follow the language macOS selects for your account. |
+    | **English** | Force English regardless of system language. |
+    | **Deutsch** | Force German regardless of system language. |
+    | **Français** | Force French regardless of system language. |
+    | **中文** | Force Simplified Chinese regardless of system language. |
+
+    Most UI elements (Settings panels, search, toasts, the help overlay) switch instantly. Native macOS elements such as the **File** and **Edit** menu bar menus and the Sparkle update window rely on `AppleLanguages` and update only after a restart.
+
+    When you select a language that differs from the launch language, FluxMarkdown shows a **"Some menus update only after restarting the app"** notice with a **Restart Now** button.
+  </Accordion>
+</AccordionGroup>
+
+## Rendering
+
+Toggle individual rendering features on or off. All toggles in this section take effect immediately on the currently open document.
+
+<AccordionGroup>
+  <Accordion title="Mermaid diagrams">
+    When enabled, fenced code blocks tagged ` ```mermaid ` are rendered as interactive diagrams. FluxMarkdown supports all Mermaid diagram types: flowcharts, sequence diagrams, Gantt charts, class diagrams, entity-relationship diagrams, and more.
+
+    Disable this toggle if your documents contain code blocks tagged `mermaid` that you want displayed as plain code rather than rendered as diagrams.
+
+    <Tip>
+      `.mmd` files are always rendered as Mermaid diagrams regardless of this toggle — the file content is automatically wrapped in a Mermaid fenced block. See [Supported file formats](/configuration/file-formats) for details.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="KaTeX math">
+    When enabled, LaTeX math expressions are rendered using KaTeX. Inline expressions are delimited by `$...$` and block expressions by `$$...$$`.
+
+    Disabling KaTeX causes expressions to display as their raw LaTeX source. This can be useful when previewing documents that use `$` as a currency symbol rather than for math.
+  </Accordion>
+
+  <Accordion title="Emoji support">
+    When enabled, GitHub-style emoji shortcodes such as `:smile:` and `:rocket:` are converted to their corresponding emoji characters in the rendered output.
+
+    Disable this toggle if your documents use colon-delimited syntax for a purpose other than emoji (for example, some YAML or custom markup formats).
+  </Accordion>
+
+  <Accordion title="Show line numbers">
+    When enabled, source-file line numbers appear in a left gutter for all block elements in the rendered preview — headings, paragraphs, lists, blockquotes, and code blocks. The numbers correspond to the original source file, making it easy to locate any section.
+
+    Line numbers also appear in the Source View (the raw Markdown view toggled with the **`</>`** button). Disabling this toggle hides the gutter in both views.
+  </Accordion>
+
+  <Accordion title="Collapse blockquotes by default">
+    When enabled, all blockquote and GitHub Alert sections (`> [!NOTE]`, `> [!WARNING]`, etc.) are collapsed when a document first opens. Each collapsed blockquote is replaced by a compact placeholder bar with a `▶` arrow. Click any placeholder to expand that individual block.
+
+    Disable this toggle to have all blockquotes expanded on open, which is the default behavior.
+  </Accordion>
+</AccordionGroup>
+
+## Editor
+
+Adjust typography and syntax highlighting for the rendered preview and Source View.
+
+<AccordionGroup>
+  <Accordion title="Font size">
+    The **Font Size** slider sets the base font size for the rendered Markdown body, from **12 px** to **24 px**. All other typographic sizes (headings, captions, code) scale proportionally from this base value.
+
+    The current value is displayed in monospace next to the slider label. Changes apply immediately to the open document.
+
+    <Tip>
+      When you export to PDF, the export dialog's font-size control defaults to match the current effective visual size (base font size × current page zoom), so your PDF matches what you see on screen.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Code highlighting theme">
+    Choose the syntax highlighting theme applied to all fenced code blocks in both the rendered preview and Source View.
+
+    | Theme | Description |
+    |-------|-------------|
+    | **Default** | Adapts to the current Light or Dark appearance using the system text color. |
+    | **GitHub** | Light-mode GitHub palette; switches to a high-contrast GitHub Dark palette in Dark mode. |
+    | **Monokai** | Dark background with vivid token colors — classic Sublime Text look. |
+    | **Atom One Dark** | Dark background with the muted Atom One Dark color scheme. |
+
+    The selected theme applies immediately. It is independent of the Light/Dark appearance toggle — you can use Monokai in Light mode if you prefer.
+  </Accordion>
+</AccordionGroup>
+
+## Settings behavior at a glance
+
+| Setting | Takes effect | Requires restart |
+|---------|-------------|-----------------|
+| Theme | Immediately | No |
+| Language | Immediately (most UI) | Yes (native menus, Sparkle) |
+| Mermaid toggle | Immediately | No |
+| KaTeX toggle | Immediately | No |
+| Emoji toggle | Immediately | No |
+| Show line numbers | Immediately | No |
+| Collapse blockquotes | On next document open | No |
+| Font size | Immediately | No |
+| Code highlighting theme | Immediately | No |
+
+<CardGroup cols={2}>
+  <Card title="Keyboard shortcuts" icon="keyboard" href="/configuration/keyboard-shortcuts">
+    Complete reference for every shortcut in QuickLook and App modes
+  </Card>
+  <Card title="Themes and appearance" icon="palette" href="/features/themes-and-appearance">
+    How Light, Dark, and System themes work across the full UI
+  </Card>
+</CardGroup>

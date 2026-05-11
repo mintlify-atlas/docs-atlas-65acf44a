@@ -1,0 +1,108 @@
+{
+  "projectType": "general",
+  "projectName": "FluxMarkdown",
+  "projectDescription": "A macOS QuickLook extension that renders Markdown files with rich support for Mermaid diagrams, KaTeX math, syntax highlighting, charts, and export — powered by a hybrid Swift + TypeScript architecture.",
+  "theme": "palm",
+  "primaryColor": "#94cb04",
+  "lightColor": "#545454",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "User Guide",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/markdown-rendering",
+              "features/diagrams-and-charts",
+              "features/export",
+              "features/themes-and-appearance",
+              "features/zoom-and-navigation"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/settings",
+              "configuration/keyboard-shortcuts",
+              "configuration/file-formats"
+            ]
+          },
+          {
+            "group": "Help",
+            "pages": [
+              "help/troubleshooting",
+              "help/auto-update",
+              "help/faq"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Developer Guide",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "dev/architecture",
+              "dev/development-setup"
+            ]
+          },
+          {
+            "group": "Web Renderer",
+            "pages": [
+              "dev/renderer/overview",
+              "dev/renderer/plugins",
+              "dev/renderer/testing"
+            ]
+          },
+          {
+            "group": "Release & Distribution",
+            "pages": [
+              "dev/release/release-process",
+              "dev/release/homebrew"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "macOS QuickLook extension for instant Markdown preview (press Space in Finder)",
+    "Mermaid diagram rendering (flowcharts, sequence diagrams, gantt, class diagrams)",
+    "KaTeX math rendering (inline and block expressions)",
+    "GitHub Flavored Markdown with alerts, task lists, and footnotes",
+    "Syntax highlighting for 40+ programming languages via highlight.js",
+    "Vega, Vega-Lite, and Graphviz (DOT) chart support",
+    "Interactive table of contents with section tracking",
+    "YAML frontmatter parsing and display",
+    "PDF and HTML export (Cmd+Shift+P / Cmd+Shift+E)",
+    "Light, Dark, and System-synchronized themes",
+    "Zoom and pan with keyboard shortcuts and trackpad gestures",
+    "Position memory — remembers scroll position and last-viewed file",
+    "Multiple file format support (.md, .mdx, .rmd, .qmd, .mmd, and more)",
+    "Multilingual UI (English, 中文, Deutsch, Français)",
+    "Auto-update via Sparkle framework"
+  ],
+  "publicApiSurface": [
+    "window.renderMarkdown(content: string) — renders Markdown content in the WebView",
+    "window.updateTheme(theme: string) — switches light/dark theme without re-render",
+    "window.webkit.messageHandlers.logger — JS-to-Swift logging bridge",
+    "brew install --cask xykong/tap/flux-markdown — Homebrew installation",
+    "make install — build and install from source",
+    "make release [major|minor|patch] — release workflow",
+    "make generate — generate Xcode project from project.yml",
+    "make build_renderer — build TypeScript web renderer",
+    "scripts/analyze-pr.sh <PR_NUMBER> — generate CHANGELOG entry from PR",
+    "scripts/update-homebrew-cask.sh — update Homebrew Cask files"
+  ]
+}

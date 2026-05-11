@@ -1,0 +1,107 @@
+---
+title: "Supported file formats and extensions in FluxMarkdown"
+description: "Every file extension FluxMarkdown registers as a QuickLook provider for — from .md and .mdx to .mmd, .rmd, .qmd, .livemd, and Markdown variants."
+---
+
+FluxMarkdown registers itself with macOS as a QuickLook provider for a wide range of Markdown-adjacent file types. When you press **Space** on any of the files listed below in Finder, FluxMarkdown handles the preview — rendering it as formatted Markdown rather than showing plain text.
+
+<Info>
+  macOS uses the **Uniform Type Identifier (UTI)** system to match files to QuickLook providers. FluxMarkdown declares a set of exported UTIs in its `Info.plist` (via `UTExportedTypeDeclarations`) so that macOS recognizes each extension and routes it to the FluxMarkdown extension. On macOS Ventura and later, FluxMarkdown also uses `pluginkit -e use` at install time to explicitly activate the extension and set its priority, ensuring it is not pre-empted by older or conflicting plugins.
+</Info>
+
+## Supported extensions
+
+### Standard Markdown
+
+| Extension | Format | Notes |
+|-----------|--------|-------|
+| `.md` | Standard Markdown | The most common Markdown extension; recognized universally. |
+| `.markdown` | Standard Markdown | Long-form alternative to `.md`; fully equivalent. |
+
+### Extended and specialized formats
+
+| Extension | Format | Notes |
+|-----------|--------|-------|
+| `.mdx` | MDX (Markdown + JSX) | Used in React and Next.js documentation. JSX syntax is not executed; content is rendered as Markdown. |
+| `.rmd` | R Markdown | Used with RStudio for reproducible research documents. Code chunks are rendered as code blocks. |
+| `.qmd` | Quarto Markdown | Used with the Quarto publishing system. Rendered as Markdown; execution directives appear as code blocks. |
+| `.mdoc` | Markdoc | Structured Markdown dialect used by Stripe and others. |
+| `.livemd` | Livebook | Elixir ecosystem notebook format used with Livebook. |
+
+### Mermaid diagram files
+
+| Extension | Format | Notes |
+|-----------|--------|-------|
+| `.mmd` | Mermaid diagram | **Special handling:** see below. |
+
+### Markdown variant extensions
+
+| Extension | Format | Notes |
+|-----------|--------|-------|
+| `.mkd` | Markdown variant | Alternative extension in common use. |
+| `.mkdn` | Markdown variant | Alternative extension in common use. |
+| `.mkdown` | Markdown variant | Alternative extension in common use. |
+| `.mdwn` | Markdown variant | Alternative extension used by ikiwiki and similar tools. |
+| `.mdown` | Markdown variant | Alternative extension in common use. |
+
+## Special handling for `.mmd` files
+
+`.mmd` files are pure Mermaid diagram source files — they contain only diagram syntax without any surrounding Markdown. When FluxMarkdown opens a `.mmd` file, it automatically wraps the entire file content in a Mermaid fenced code block before rendering:
+
+```markdown
+```mermaid
+<your .mmd file content here>
+```
+```
+
+This means every Mermaid diagram type is supported in `.mmd` files — flowcharts, sequence diagrams, Gantt charts, class diagrams, entity-relationship diagrams, and more — without any modification to the file.
+
+<Note>
+  The Mermaid toggle in **Settings → Rendering** does not affect `.mmd` files. Those files are always rendered as diagrams.
+</Note>
+
+## How FluxMarkdown registers as the QuickLook handler
+
+When you install and launch FluxMarkdown, macOS registers the app's QuickLook extension via `pluginkit`. The extension declares each supported file extension and its corresponding UTI in the app bundle. macOS then uses these declarations to route Space-bar previews for matching files to FluxMarkdown.
+
+On macOS Ventura and later, FluxMarkdown explicitly activates the extension using `pluginkit -e use` to avoid being displaced by cached or previously installed plugins.
+
+## If a file type is not recognized
+
+If pressing **Space** on a supported extension shows plain text or uses a different previewer, the QuickLook cache may be stale or another plugin may have higher priority.
+
+**Step 1 — Reset the QuickLook cache:**
+
+```bash
+qlmanage -r
+killall Finder
+```
+
+**Step 2 — Check which plugin handles your file type:**
+
+```bash
+qlmanage -m
+```
+
+This prints a list of all registered QuickLook generators and the UTIs they handle. Look for your file extension and confirm that the entry points to FluxMarkdown.
+
+**Step 3 — Check that the extension is active:**
+
+```bash
+pluginkit -m -v | grep -i markdown
+```
+
+If FluxMarkdown does not appear or is marked as disabled, try relaunching the FluxMarkdown app — it re-registers the extension on each launch.
+
+**Step 4 — Verify the app location:**
+
+macOS sandbox restrictions require FluxMarkdown to live in `/Applications/`. If the app is in `~/Downloads/`, `~/Desktop/`, or any other location, the QuickLook extension may not activate. Move the app to `/Applications/` and relaunch.
+
+<CardGroup cols={2}>
+  <Card title="Diagrams and charts" icon="diagram-project" href="/features/diagrams-and-charts">
+    Mermaid, Vega, and Graphviz rendering details
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/help/troubleshooting">
+    Fix QuickLook registration and preview issues
+  </Card>
+</CardGroup>

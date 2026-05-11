@@ -1,0 +1,170 @@
+---
+title: "FluxMarkdown release process: version, DMG, and GitHub"
+description: "How to create a new FluxMarkdown release — versioning, CHANGELOG generation, DMG build, GitHub release, appcast, and Homebrew update."
+---
+
+FluxMarkdown uses a tag-first release workflow driven by a single `make release` command. The version number is derived from the `.version` file and the git commit count, ensuring the version embedded in the DMG, the GitHub release, and the Sparkle appcast are always consistent.
+
+## Versioning
+
+Versions follow the `X.Y.Z` format:
+
+- **X** — major version (breaking changes)
+- **Y** — minor version (new features)
+- **Z** — build number, equal to the git commit count at the time of tagging
+
+The `.version` file stores only the `X.Y` base (e.g., `1.13`). The full version is computed at release time:
+
+```bash
+BASE_VERSION=$(cat .version)          # e.g. 1.13
+COMMIT_COUNT=$(git rev-list --count HEAD)  # e.g. 149
+FULL_VERSION="$BASE_VERSION.$COMMIT_COUNT" # → 1.13.149
+```
+
+<Warning>
+  Never set the build number (`Z`) manually. It is always calculated from `git rev-list --count HEAD`. Editing it by hand will cause the appcast and GitHub Release to disagree.
+</Warning>
+
+## CHANGELOG workflow
+
+Every merged PR should have a corresponding entry in the `[Unreleased]` section of `CHANGELOG.md` before a release is cut.
+
+**Step 1: Analyze the PR**
+
+```bash
+./scripts/analyze-pr.sh <PR_NUMBER>
+```
+
+The script prints the PR title, description, modified files, diff, and a suggested CHANGELOG entry template.
+
+**Step 2: Add the entry manually**
+
+Edit `CHANGELOG.md` and add the entry under `## [Unreleased]` using the format:
+
+```markdown
+### Fixed
+- **QuickLook**: Description of the fix. (Thanks to [@username](https://github.com/username) [#42](https://github.com/xykong/flux-markdown/pull/42))
+  - Technical implementation detail 1
+  - Technical implementation detail 2
+```
+
+Categories: `Added`, `Fixed`, `Changed`, `Removed`, `Deprecated`.
+
+**Step 3: Commit the CHANGELOG update**
+
+```bash
+git add CHANGELOG.md
+git commit -m "docs(changelog): add PR #42 to unreleased section"
+git push origin master
+```
+
+<Info>
+  CHANGELOG entries for architecture, build, test, CI, and refactoring changes are kept in `CHANGELOG.md` but filtered out of the public GitHub Release notes by `scripts/release.sh`.
+</Info>
+
+## Release steps
+
+<Steps>
+  <Step title="Ensure all PRs are recorded">
+    Verify the `[Unreleased]` section of `CHANGELOG.md` contains entries for all merged PRs since the last release. Run `./scripts/analyze-pr.sh <PR_NUMBER>` for any that are missing.
+  </Step>
+  <Step title="Run the release command">
+    Choose the bump type that matches the scope of changes:
+
+    ```bash
+    make release patch   # 1.13.148 → 1.13.149
+    make release minor   # 1.13.148 → 1.14.149
+    make release major   # 1.13.148 → 2.0.149
+    ```
+  </Step>
+  <Step title="What make release does automatically">
+    The `scripts/release.sh` script executes the following in order:
+
+    1. Reads `.version` and calculates the full version from the current commit count.
+    2. Creates the git tag at the **current** commit (before any version bump commit) so the tag points to the last feature commit, not the release commit.
+    3. Updates `.version` with the new `X.Y` base.
+    4. Moves `[Unreleased]` entries to a new versioned section in `CHANGELOG.md`.
+    5. Builds the TypeScript renderer (`npm install && npm run build`).
+    6. Generates the Xcode project (`xcodegen`) and builds the macOS app.
+    7. Packages the `.app` into a DMG using `create-dmg` with Retina support.
+    8. Generates `appcast.xml` via `scripts/generate-appcast.sh` (signs the DMG with the Sparkle private key).
+    9. Commits `.version`, `CHANGELOG.md`, and `appcast.xml`.
+    10. Creates the GitHub Release with the DMG attached.
+  </Step>
+  <Step title="Verify the release">
+    Check the following after the command completes:
+
+    - GitHub Release exists at the correct tag
+    - DMG is attached to the release
+    - `appcast.xml` in the repository contains the new version entry
+    - All version strings match: git tag, GitHub Release title, DMG filename, `appcast.xml`
+  </Step>
+  <Step title="Update Homebrew">
+    ```bash
+    ./scripts/update-homebrew-cask.sh
+    ```
+
+    This script calculates the SHA256 of the new DMG and updates both the tap cask (`xykong/tap`) and the official homebrew-cask draft file. See the [Homebrew distribution guide](/dev/release/homebrew) for details.
+  </Step>
+</Steps>
+
+## DMG build
+
+The DMG is created with `create-dmg`. It uses a custom background image and supports Retina displays. The output is written to `build/artifacts/FluxMarkdown.dmg`.
+
+Key `create-dmg` options used in the build script:
+
+```bash
+create-dmg \
+  --volname "FluxMarkdown" \
+  --background "assets/dmg-background.png" \
+  --window-size 800 400 \
+  --icon-size 128 \
+  --app-drop-link 600 200 \
+  "build/artifacts/FluxMarkdown.dmg" \
+  "build/artifacts/FluxMarkdown.app"
+```
+
+## Sparkle appcast
+
+FluxMarkdown uses [Sparkle](https://sparkle-project.org/) for in-app update delivery. The `appcast.xml` file at the repository root is parsed by the running app to detect new versions.
+
+```bash
+./scripts/generate-appcast.sh build/artifacts/FluxMarkdown.dmg
+```
+
+This script signs the DMG with the Sparkle EdDSA private key and appends a new `<item>` entry to `appcast.xml`. The signature allows Sparkle to verify the download before installing.
+
+<Warning>
+  The Sparkle private key lives in `.sparkle-keys/` which is listed in `.gitignore`. **Never commit this directory.** If the key is lost, existing installations cannot receive future updates. Back it up to a secure location outside the repository.
+</Warning>
+
+## GitHub release
+
+The GitHub Release is created automatically by `scripts/release.sh` using the GitHub CLI:
+
+```bash
+gh release create "v${FULL_VERSION}" build/artifacts/FluxMarkdown.dmg \
+  --title "v${FULL_VERSION}" \
+  --notes-file release_notes_tmp.md
+```
+
+The release notes are filtered from `CHANGELOG.md` — internal entries (architecture, build, test) are excluded. Only user-visible changes appear in the public release.
+
+## Recovering from a failed release
+
+If the release command fails partway through:
+
+1. Delete the tag if it was created: `git tag -d v<VERSION> && git push origin :refs/tags/v<VERSION>`
+2. Delete the GitHub Release if it was created: `gh release delete v<VERSION>`
+3. Revert any version commit: `git revert HEAD`
+4. Fix the root cause, then run `make release` again from the beginning.
+
+<CardGroup cols={2}>
+  <Card title="Homebrew distribution" icon="beer-mug-empty" href="/dev/release/homebrew">
+    How to update the tap cask and submit to the official homebrew-cask repository.
+  </Card>
+  <Card title="Architecture overview" icon="diagram-project" href="/dev/architecture">
+    How the Swift host and TypeScript renderer work together.
+  </Card>
+</CardGroup>

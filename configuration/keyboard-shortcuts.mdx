@@ -1,0 +1,74 @@
+---
+title: "FluxMarkdown keyboard shortcuts: QuickLook and App modes"
+description: "Every keyboard shortcut for FluxMarkdown — zoom, export, search, help panel, source toggle — organized by QuickLook and App mode."
+---
+
+FluxMarkdown provides two distinct operating modes — **QuickLook** (triggered by pressing Space in Finder) and the **main App** (opened by double-clicking a Markdown file). Each mode exposes a different set of keyboard shortcuts. The tables below list every shortcut available in each mode.
+
+<Tabs>
+  <Tab title="QuickLook mode">
+    QuickLook runs inside a system-managed window controlled by macOS Finder. Most keyboard events are intercepted by the system before they reach the FluxMarkdown extension, so only a small set of shortcuts is available.
+
+    | Shortcut | Action |
+    |----------|--------|
+    | `Space` | Open (or close) the QuickLook preview for the selected file in Finder |
+    | `Cmd` + `+` or `Cmd` + `=` | Zoom in — increases page zoom by 10% (max 300%) |
+    | `Cmd` + `-` | Zoom out — decreases page zoom by 10% (min 50%) |
+    | `Cmd` + `0` | Reset zoom to 100% |
+    | `Cmd` + `R` | Reload the file from disk — picks up external edits immediately |
+    | `Cmd` + `Shift` + `M` | Toggle between rendered preview and raw Markdown source view |
+    | `?` | Open the in-preview help panel |
+
+    You can also zoom using **pinch gestures** on a trackpad (two-finger pinch/spread performs smooth visual magnification from 0.25× to 5×), and reset zoom with a **two-finger double-tap**.
+
+    <Warning>
+      macOS intercepts most keyboard events in QuickLook. Shortcuts that rely on `Cmd+Shift`, `Cmd+F`, and other modifier combinations used by the system or Finder may not reach FluxMarkdown. If a shortcut listed here does not respond, switch to App mode for full keyboard access.
+    </Warning>
+  </Tab>
+
+  <Tab title="App mode">
+    When you open a Markdown file directly in the FluxMarkdown app (by double-clicking it in Finder, or by using **File → Open**), you have access to the full shortcut set. The app receives all keyboard events directly.
+
+    | Shortcut | Action |
+    |----------|--------|
+    | `Cmd` + `,` | Open **Settings** |
+    | `Cmd` + `F` | Open the in-document **search** bar |
+    | `Cmd` + `R` | **Reload** the file from disk |
+    | `Cmd` + `+` or `Cmd` + `=` | Zoom in (max 300%) |
+    | `Cmd` + `-` | Zoom out (min 50%) |
+    | `Cmd` + `0` | Reset zoom to 100% |
+    | `Cmd` + `Shift` + `P` | **Export as PDF** — opens a save panel with font-size control |
+    | `Cmd` + `Shift` + `E` | **Export as HTML** — exports a self-contained HTML file |
+    | `Cmd` + `Shift` + `M` | Toggle between rendered **preview** and raw **source** view |
+    | `Alt` + `Cmd` + `E` | **Open in external editor** — opens the current file in your default plain-text editor via `open -t` |
+    | `?` | Open the **help panel** — shows all shortcuts with mode badges |
+    | `Cmd` (hold 2 s) | Open the help panel automatically after holding Cmd for two seconds |
+
+    Zoom also works with **Cmd + scroll** on a trackpad or mouse (range: 50%–300%), and with **pinch gestures** on a trackpad.
+  </Tab>
+</Tabs>
+
+## Help panel
+
+The help panel gives you a quick-reference card for all shortcuts without leaving the preview window.
+
+**Three ways to open it:**
+
+1. Press `?` anywhere in the preview.
+2. Hold `Cmd` for two seconds without pressing any other key.
+3. Click the `?` button in the top-right corner of the window.
+
+The panel distinguishes between shortcuts available only in App mode (marked with a yellow **App** badge) and those that work in both modes. In QuickLook, a yellow banner at the top of the panel warns that most keyboard events are intercepted by the system.
+
+<Note>
+  The Cmd-hold trigger is smart: it cancels if you press any non-modifier key (such as Tab, Space, or a letter) while holding Cmd. Only a pure Cmd hold — with no other keys pressed — opens the panel. You can disable the Cmd-hold behavior from within the help panel itself using the checkbox at the bottom.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Settings" icon="sliders" href="/configuration/settings">
+    Configure appearance, rendering, and editor preferences
+  </Card>
+  <Card title="Zoom and navigation" icon="magnifying-glass" href="/features/zoom-and-navigation">
+    How zoom levels, gestures, and scroll position work
+  </Card>
+</CardGroup>

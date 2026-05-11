@@ -1,0 +1,79 @@
+---
+title: "FluxMarkdown: Markdown preview for macOS QuickLook"
+description: "FluxMarkdown renders Markdown in macOS Finder QuickLook with Mermaid, KaTeX, syntax highlighting, export, and themes — no configuration needed."
+---
+
+FluxMarkdown is a macOS QuickLook extension that renders Markdown files beautifully the moment you press **Space** in Finder. Instead of opening a separate editor, you get an instant, fully-styled preview — complete with Mermaid diagrams, KaTeX math, syntax-highlighted code blocks, charts, and more. It works with every `.md`-family file format and requires no configuration to get started.
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="Mermaid diagrams" icon="diagram-project" href="/features/diagrams-and-charts">
+    Render flowcharts, sequence diagrams, Gantt charts, and more — directly from fenced code blocks.
+  </Card>
+  <Card title="KaTeX math" icon="square-root-variable" href="/features/markdown-rendering">
+    Inline and block mathematical expressions using LaTeX syntax, rendered with KaTeX.
+  </Card>
+  <Card title="GitHub Flavored Markdown" icon="github" href="/features/markdown-rendering">
+    Full GFM support: tables, task lists, strikethrough, and GitHub-style callout alerts.
+  </Card>
+  <Card title="Syntax highlighting" icon="code" href="/features/markdown-rendering">
+    Code blocks highlighted for 40+ languages using themes like GitHub, Monokai, and Atom One Dark.
+  </Card>
+  <Card title="Charts and graphs" icon="chart-bar" href="/features/diagrams-and-charts">
+    Vega, Vega-Lite, and Graphviz DOT diagrams rendered inline alongside your Markdown.
+  </Card>
+  <Card title="Table of contents" icon="list" href="/features/zoom-and-navigation">
+    An interactive TOC panel tracks your scroll position and lets you jump between sections.
+  </Card>
+  <Card title="Export" icon="file-export" href="/features/export">
+    Export your document as a PDF or standalone HTML file with a single keyboard shortcut.
+  </Card>
+  <Card title="Themes" icon="palette" href="/features/themes-and-appearance">
+    Light, Dark, and System-synced modes. Switch at any time from Settings.
+  </Card>
+</CardGroup>
+
+## How it works
+
+FluxMarkdown uses a hybrid architecture. A lightweight native Swift app registers a QuickLook Preview Extension with macOS — this is what intercepts the **Space** key press in Finder. When you preview a file, the extension reads it and passes the raw Markdown text to a bundled TypeScript rendering engine running inside a `WKWebView`.
+
+The renderer is built on [markdown-it](https://github.com/markdown-it/markdown-it) and extends it with purpose-built plugins for Mermaid, KaTeX, Vega, and Graphviz. The result is a single, self-contained HTML page that is displayed inside the QuickLook panel — no internet connection required.
+
+This design means the rendering logic is easy to update independently of the Swift shell, and the preview is as fast as loading a local web page.
+
+## Comparison with other QuickLook plugins
+
+| Feature | FluxMarkdown | QLMarkdown | qlmarkdown | PreviewMarkdown |
+|---|---|---|---|---|
+| Install | Homebrew / DMG | Homebrew / DMG | Manual | App Store / DMG |
+| Mermaid | Yes | Yes | Not mentioned | Not mentioned |
+| KaTeX / Math | Yes | Yes | Not mentioned | Not mentioned |
+| GFM / Alerts | Yes | Yes | Partial | Not mentioned |
+| TOC panel | Yes | Not mentioned | No | Not mentioned |
+| Charts (Vega/DOT) | Yes | Not mentioned | No | No |
+| Export (PDF/HTML) | Yes | No | No | No |
+| YAML frontmatter | Yes | Yes | No | No |
+| Themes | Light/Dark/System | CSS-based | Not mentioned | Basic controls |
+| Zoom | Yes | Not mentioned | No | Not mentioned |
+| Scroll restore | Yes | Not mentioned | No | No |
+
+<Note>
+  Feature entries are based on each project's public README and release notes at the time of writing. "Not mentioned" means the feature was not documented in the project's sources.
+</Note>
+
+## Supported file formats
+
+FluxMarkdown automatically handles the following file extensions:
+
+`.md` · `.mdx` · `.rmd` · `.qmd` · `.mdoc` · `.mmd` · `.livemd` · `.mkd` · `.mkdn` · `.mkdown` · `.mdwn` · `.mdown` · `.markdown`
+
+See [File formats](/configuration/file-formats) for details on format-specific behavior.
+
+## License
+
+FluxMarkdown is dual-licensed:
+
+**GPL-3.0 (open source)** — Free for personal, educational, and open-source use. Any modifications must also be released under GPL-3.0.
+
+**Commercial license** — Required for closed-source or proprietary products. Allows distribution without open-sourcing your modifications. Contact [xy.kong@gmail.com](mailto:xy.kong@gmail.com) for inquiries.

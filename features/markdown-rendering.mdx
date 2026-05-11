@@ -1,0 +1,212 @@
+---
+title: "Markdown rendering: GFM, KaTeX math, syntax highlighting"
+description: "Full-featured GitHub Flavored Markdown rendering with KaTeX math, syntax highlighting, footnotes, alerts, and extended typography."
+---
+
+FluxMarkdown renders your `.md` and `.mdx` files using a complete stack of Markdown extensions: GitHub Flavored Markdown (GFM), KaTeX for math, Highlight.js for code, and a suite of extended-syntax plugins for footnotes, subscripts, highlights, and smart punctuation. Every feature described here works in both QuickLook preview and the standalone app.
+
+## GitHub Flavored Markdown
+
+FluxMarkdown uses `markdown-it` with the `markdown-it-github-alerts` plugin and enables all standard GFM constructs.
+
+<AccordionGroup>
+  <Accordion title="Tables" defaultOpen>
+    Standard pipe-delimited tables render with proper header alignment:
+
+    ```markdown
+    | Feature    | Status | Notes              |
+    |------------|:------:|-------------------|
+    | Tables     |   ✅   | Alignment supported |
+    | Task lists |   ✅   | Interactive checkboxes |
+    ```
+  </Accordion>
+
+  <Accordion title="Task lists">
+    Checkboxes render visually. They are read-only in QuickLook mode.
+
+    ```markdown
+    - [x] Install FluxMarkdown
+    - [x] Open a Markdown file with Space
+    - [ ] Configure your preferred theme
+    ```
+  </Accordion>
+
+  <Accordion title="Strikethrough">
+    Wrap text in `~~double tildes~~` to produce struck-through text.
+
+    ```markdown
+    ~~deprecated syntax~~ → rendered as struck-through
+    ```
+  </Accordion>
+
+  <Accordion title="GitHub alerts">
+    FluxMarkdown renders all five GitHub alert types:
+
+    ```markdown
+    > [!NOTE]
+    > Highlights information that users should take into account.
+
+    > [!TIP]
+    > Optional information to help a user be more successful.
+
+    > [!IMPORTANT]
+    > Crucial information necessary for users to succeed.
+
+    > [!WARNING]
+    > Critical content demanding immediate user attention.
+
+    > [!CAUTION]
+    > Negative potential consequences of an action.
+    ```
+
+    Each alert renders with the matching colour, icon, and label from GitHub's own spec.
+  </Accordion>
+</AccordionGroup>
+
+## KaTeX math
+
+Math is rendered by [KaTeX](https://katex.org/) and loaded on demand — it is only activated when the parser detects `$…$` or `$$…$$` delimiters in the document, keeping documents without math fast.
+
+<Tabs>
+  <Tab title="Inline math">
+    Wrap an expression in single dollar signs on the same line as surrounding text:
+
+    ```markdown
+    Einstein's famous equation: $E = mc^2$
+
+    The quadratic formula is $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$.
+    ```
+  </Tab>
+  <Tab title="Block math">
+    Place double dollar signs on their own lines for display-mode equations:
+
+    ```markdown
+    $$
+    \int_{-\infty}^{\infty} e^{-x^2} \, dx = \sqrt{\pi}
+    $$
+
+    $$
+    \mathbf{F} = m\mathbf{a}
+    $$
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+KaTeX rendering can be toggled in **Settings → Rendering → KaTeX**. When disabled, the `$…$` delimiters are shown as plain text.
+</Note>
+
+## Syntax highlighting
+
+Code fences are highlighted by [Highlight.js](https://highlightjs.org/) with support for 40+ languages. Specify the language immediately after the opening triple backticks:
+
+````markdown
+```python
+def greet(name: str) -> str:
+    return f"Hello, {name}!"
+```
+````
+
+**Supported languages include:**
+
+<CardGroup cols={3}>
+  <Card title="Systems & web" icon="code">
+    C, C++, Go, Rust, Swift, Kotlin, Objective-C, Java, C#, TypeScript, JavaScript, PHP, Ruby
+  </Card>
+  <Card title="Scripting & data" icon="terminal">
+    Python, Bash, Shell, PowerShell, R, Lua, Perl, Haskell, Elixir, Groovy, Scala, Dart
+  </Card>
+  <Card title="Config & markup" icon="file">
+    JSON, YAML, TOML, XML, HTML, CSS, SQL, Dockerfile, Nginx, Makefile, Protobuf, GraphQL, Diff
+  </Card>
+</CardGroup>
+
+**Common aliases** are supported so you can write `js`, `ts`, `py`, `sh`, `rb`, `kt`, `cs`, `objc`, `ps1`, `proto`, `gql`, `hs`, `ex`, or `exs` and they resolve to the correct grammar.
+
+The active highlighting theme is controlled in **Settings → Editor → Code highlight theme**. See [Themes and appearance](/features/themes-and-appearance) for the available options.
+
+## Extended syntax
+
+FluxMarkdown ships several `markdown-it` plugins beyond the GFM baseline.
+
+<AccordionGroup>
+  <Accordion title="Footnotes">
+    Use `[^label]` inline and define the note content anywhere in the document:
+
+    ```markdown
+    Markdown is widely used[^1] in technical writing.
+
+    [^1]: Markdown was created by John Gruber in 2004.
+    ```
+
+    Footnotes render at the bottom of the preview with back-links to the reference site.
+  </Accordion>
+
+  <Accordion title="Subscript and superscript">
+    ```markdown
+    Water is H~2~O.
+    The area is r^2^π.
+    ```
+
+    Subscript uses `~text~`; superscript uses `^text^`.
+  </Accordion>
+
+  <Accordion title="Highlight">
+    Mark important text with double equals signs. It renders as an HTML `<mark>` element:
+
+    ```markdown
+    This is ==highlighted text== inside a sentence.
+    ```
+  </Accordion>
+
+  <Accordion title="Smart typography (typographer)">
+    The typographer mode transforms plain ASCII punctuation into proper typographic characters:
+
+    | Input | Output |
+    |-------|--------|
+    | `"hello"` | "hello" |
+    | `'world'` | 'world' |
+    | `--` | – (en dash) |
+    | `---` | — (em dash) |
+    | `...` | … (ellipsis) |
+  </Accordion>
+</AccordionGroup>
+
+## YAML frontmatter
+
+If your document begins with a `---`-delimited YAML block, FluxMarkdown parses it and renders the key-value pairs as a clean table above the document body — no raw YAML is shown.
+
+```markdown
+---
+title: My Research Note
+author: Jane Smith
+date: 2026-05-01
+tags: [markdown, research, notes]
+draft: false
+---
+
+# Introduction
+
+Body text begins here.
+```
+
+The parsed frontmatter appears as a styled metadata table at the top of the preview. Nested objects render as indented sub-tables; arrays render as bullet lists.
+
+<Tip>
+Frontmatter is purely presentational in FluxMarkdown. The file on disk is never modified.
+</Tip>
+
+## RTL language support
+
+FluxMarkdown automatically detects right-to-left content. When more than 30% of the document's characters are RTL script (Arabic, Hebrew, Persian, etc.), the preview applies `dir="rtl"` to the content container. Switching back to a Latin-script document removes the attribute immediately.
+
+No configuration is required — detection is fully automatic.
+
+<CardGroup cols={2}>
+  <Card title="Diagrams and charts" icon="chart-network" href="/features/diagrams-and-charts">
+    Mermaid, Vega/Vega-Lite, and Graphviz DOT support
+  </Card>
+  <Card title="Themes and appearance" icon="palette" href="/features/themes-and-appearance">
+    Light, dark, system themes and code highlight options
+  </Card>
+</CardGroup>

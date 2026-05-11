@@ -1,0 +1,93 @@
+---
+title: "Export Markdown previews to PDF or HTML in FluxMarkdown"
+description: "Export Markdown previews to paginated A4 PDF (Cmd+Shift+P) or self-contained HTML with inlined images and styles (Cmd+Shift+E) in FluxMarkdown."
+---
+
+FluxMarkdown can export the rendered view of any Markdown document to a PDF or a standalone HTML file. Both formats capture everything visible in the preview: rendered diagrams, syntax-highlighted code, math, images, and the active theme. Export is available in the standalone app; the QuickLook panel only renders previews and does not expose export actions.
+
+## PDF export
+
+<Steps>
+  <Step title="Open the file in the app">
+    Double-click a `.md` file in Finder to open it in the FluxMarkdown app window, or press `Cmd+O` to open a file.
+  </Step>
+  <Step title="Trigger the export">
+    Press `Cmd+Shift+P`, or choose **File → Export as PDF** from the menu bar.
+  </Step>
+  <Step title="Adjust the font size">
+    A save panel opens with a font-size slider (range: 8–72 px). The slider is pre-set to the current effective visual font size — the base font size multiplied by the active page zoom. Adjust it if you want a different print size from what you see on screen.
+  </Step>
+  <Step title="Choose a destination and save">
+    Pick a folder and filename, then click **Save**. FluxMarkdown generates a paginated A4 PDF using `NSPrintOperation` and opens the save location in Finder.
+  </Step>
+</Steps>
+
+### What the PDF includes
+
+- Rendered Markdown body at the font size chosen in the save panel
+- Syntax-highlighted code blocks (styles are inlined for the print context)
+- Mermaid, Vega, and Graphviz diagrams (captured as vector SVG)
+- KaTeX math expressions
+- Local images (embedded as base64 data URIs so the PDF is self-contained)
+- A4 pagination using `@media print` rules — code blocks and images avoid page-break splits where possible
+
+<Note>
+The font-size slider default reflects your current zoom level. If you zoomed in with `Cmd++` before exporting, the slider will show that zoomed size. Reset zoom with `Cmd+0` before exporting if you want the base font size.
+</Note>
+
+## HTML export
+
+<Steps>
+  <Step title="Open the file in the app">
+    Double-click the `.md` file in Finder or use `Cmd+O`.
+  </Step>
+  <Step title="Trigger the export">
+    Press `Cmd+Shift+E`, or choose **File → Export as HTML** from the menu bar.
+  </Step>
+  <Step title="Choose a destination and save">
+    A standard save panel opens. Pick a location, confirm the filename, and click **Save**.
+  </Step>
+</Steps>
+
+### What the HTML file includes
+
+The exported HTML is a single, fully self-contained file — no external dependencies required:
+
+<AccordionGroup>
+  <Accordion title="Inlined CSS" defaultOpen>
+    All stylesheets (GitHub Markdown CSS, KaTeX fonts, code highlight theme, callout styles) are collected from the live document and written into a single `<style>` block in the `<head>`. The file renders identically in any browser, offline.
+  </Accordion>
+  <Accordion title="Base64 images">
+    Local images referenced in the Markdown (PNG, JPG, GIF, SVG, WebP) are read from disk and converted to `data:` URIs. The exported HTML file contains every image inline — you can share it with someone who does not have the original assets.
+  </Accordion>
+  <Accordion title="Rendered diagrams">
+    Mermaid, Vega, and Graphviz diagrams are exported as their final SVG output, not as source code. The recipient does not need any diagram library installed.
+  </Accordion>
+  <Accordion title="Theme-aware styles">
+    The export captures whichever theme was active at export time (light or dark). It also includes `@media (prefers-color-scheme: dark)` rules so browsers that support system-level dark mode will honour the user's OS preference.
+  </Accordion>
+</AccordionGroup>
+
+## Limitations
+
+<Warning>
+Export (`Cmd+Shift+P` / `Cmd+Shift+E`) is only available in the **standalone app**. The QuickLook panel that opens when you press Space in Finder does not support export — keyboard shortcuts may be intercepted by the system in QuickLook mode.
+
+To export, double-click the file to open it in the full app.
+</Warning>
+
+| Capability | QuickLook panel | Standalone app |
+|---|:---:|:---:|
+| Render preview | ✅ | ✅ |
+| PDF export | — | ✅ |
+| HTML export | — | ✅ |
+| Font size slider in PDF save panel | — | ✅ |
+
+<CardGroup cols={2}>
+  <Card title="Zoom and navigation" icon="search" href="/features/zoom-and-navigation">
+    Adjust zoom before exporting to control the visual font size
+  </Card>
+  <Card title="Themes and appearance" icon="palette" href="/features/themes-and-appearance">
+    Switch theme before exporting to choose light or dark output
+  </Card>
+</CardGroup>

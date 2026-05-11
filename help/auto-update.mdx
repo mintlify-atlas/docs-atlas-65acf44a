@@ -1,0 +1,76 @@
+---
+title: "Auto-updates in FluxMarkdown via Sparkle framework"
+description: "How FluxMarkdown auto-updates via Sparkle — background checks, EdDSA verification, post-update file restore, and manual update fallback steps."
+---
+
+FluxMarkdown uses [Sparkle](https://sparkle-project.org/), the standard open-source update framework for macOS apps, to deliver automatic updates. Sparkle checks for new versions in the background, notifies you when one is available, and installs it without requiring you to visit a website or download a file manually.
+
+## How automatic updates work
+
+<Steps>
+  <Step title="Background version check">
+    When FluxMarkdown launches, Sparkle fetches the `appcast.xml` feed from GitHub. This feed contains metadata about the latest release, including its version number, download URL, and a cryptographic signature. The check is lightweight and runs in the background — it does not affect app startup time.
+  </Step>
+  <Step title="Update notification">
+    If a newer version is available, Sparkle displays an in-app notification. The dialog shows the release notes for the new version and gives you the option to install immediately or defer the update.
+  </Step>
+  <Step title="In-app download and install">
+    When you approve the update, Sparkle downloads the new version, verifies its signature, replaces the old app bundle, and relaunches FluxMarkdown automatically. The entire process happens inside the app — no manual steps required.
+  </Step>
+</Steps>
+
+## Check for updates manually
+
+You do not need to wait for a background check. To check for a new version at any time:
+
+1. Open **FluxMarkdown**
+2. In the menu bar, go to **Help** → **Check for Updates...**
+
+Sparkle will immediately fetch the appcast and tell you whether you are on the latest version or whether an update is available.
+
+## What happens after an update
+
+After FluxMarkdown relaunches following an update, it automatically reopens the last Markdown file you were viewing. This is handled through a shared App Group (`group.com.xykong.Markdown`) that persists the file path across the update. If the file has been moved or deleted since the last session, FluxMarkdown opens to the welcome screen instead.
+
+## Update verification (EdDSA signatures)
+
+Every release is signed with an EdDSA private key before the `appcast.xml` is published. Sparkle verifies this signature before installing the update. If the signature does not match the downloaded file, Sparkle rejects the update entirely. This prevents tampered or corrupted updates from being installed even if the download source were compromised.
+
+<Info>
+  The EdDSA private key used to sign releases is never committed to the repository. It is stored in a secure credential manager and used only during the release process.
+</Info>
+
+## If auto-update fails
+
+Auto-update can fail if:
+
+- FluxMarkdown does not have network access (e.g. behind a restrictive firewall)
+- The appcast URL is temporarily unreachable
+- The signature verification step fails for a corrupted download
+
+**Option 1 — Download the DMG manually**
+
+Download the latest `FluxMarkdown.dmg` from the [GitHub Releases page](https://github.com/xykong/flux-markdown/releases). Open the DMG, drag FluxMarkdown to Applications, and relaunch the app.
+
+**Option 2 — Update via Homebrew**
+
+If you installed FluxMarkdown using the Homebrew tap, run:
+
+```bash
+brew update && brew upgrade --cask flux-markdown
+```
+
+This fetches the latest cask definition, downloads the new version, and replaces the installed app automatically.
+
+<Warning>
+  After a manual update via DMG, macOS may show the "App is damaged" or "Unidentified developer" warning if the quarantine attribute is re-applied. Run `xattr -cr "/Applications/FluxMarkdown.app"` in Terminal to clear it, then relaunch the app.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Troubleshooting" icon="wrench" href="/help/troubleshooting">
+    Fix common issues with QuickLook preview not working.
+  </Card>
+  <Card title="FAQ" icon="circle-question" href="/help/faq">
+    Answers to frequently asked questions about installation and features.
+  </Card>
+</CardGroup>

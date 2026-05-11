@@ -1,0 +1,139 @@
+---
+title: "Install FluxMarkdown: Homebrew, DMG, or from source"
+description: "Install FluxMarkdown via Homebrew, DMG, or from source. Requires macOS with QuickLook extension support. Setup takes under 30 seconds."
+---
+
+FluxMarkdown installs as a standard macOS application. Once installed, it registers a QuickLook Preview Extension with the system — no extra configuration needed. Choose the method that suits you best: Homebrew for the quickest path, DMG for a manual install, or building from source if you want to run the latest code.
+
+## System requirements
+
+- **macOS**: A version that supports QuickLook Preview Extensions (macOS 10.15 Catalina or later is recommended)
+- **Architecture**: Apple Silicon (arm64) and Intel (x86_64)
+- **Disk space**: ~30 MB
+
+## Installation
+
+<Tabs>
+  <Tab title="Homebrew (recommended)">
+    Homebrew is the fastest way to install and keep FluxMarkdown up to date.
+
+    <Steps>
+      <Step title="Install via Homebrew Cask">
+        Run the following command in Terminal:
+
+        ```bash
+        brew install --cask xykong/tap/flux-markdown
+        ```
+
+        This taps the `xykong/tap` repository and installs the latest release of FluxMarkdown.
+      </Step>
+      <Step title="Launch the app once">
+        Open **FluxMarkdown** from your Applications folder. The welcome screen appears briefly — this step registers the QuickLook extension with macOS.
+
+        <Note>
+          macOS requires a QuickLook extension's host app to be launched at least once before the extension becomes active. Skipping this step means previews will not work yet.
+        </Note>
+      </Step>
+      <Step title="Verify the preview works">
+        In Finder, select any `.md` file and press **Space**. You should see a rendered Markdown preview instead of plain text.
+      </Step>
+    </Steps>
+
+    To update FluxMarkdown later:
+
+    ```bash
+    brew update && brew upgrade --cask flux-markdown
+    ```
+  </Tab>
+  <Tab title="DMG (manual)">
+    Download and install the app directly if you prefer not to use Homebrew.
+
+    <Steps>
+      <Step title="Download the latest release">
+        Go to the [Releases page](https://github.com/xykong/flux-markdown/releases) on GitHub and download the latest `FluxMarkdown.dmg`.
+      </Step>
+      <Step title="Open the DMG">
+        Double-click the downloaded `.dmg` file to mount it.
+      </Step>
+      <Step title="Copy to Applications">
+        Drag **FluxMarkdown.app** into the **Applications** folder shown in the DMG window.
+      </Step>
+      <Step title="Launch the app once">
+        Open **FluxMarkdown** from Applications. This registers the QuickLook extension with macOS.
+
+        <Warning>
+          If macOS shows an "App is damaged" or "unidentified developer" warning, run the following in Terminal and then try opening the app again:
+
+          ```bash
+          xattr -cr "/Applications/FluxMarkdown.app"
+          ```
+        </Warning>
+      </Step>
+      <Step title="Verify the preview works">
+        Select a `.md` file in Finder and press **Space** to confirm the preview renders correctly.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Build from source">
+    Build FluxMarkdown yourself if you want to run the latest unreleased code or contribute to the project.
+
+    <Steps>
+      <Step title="Install prerequisites">
+        You need Xcode (with command-line tools), [xcodegen](https://github.com/yonaskolb/XcodeGen), and Node.js.
+
+        ```bash
+        brew install xcodegen node
+        ```
+      </Step>
+      <Step title="Clone the repository">
+        ```bash
+        git clone https://github.com/xykong/flux-markdown.git
+        cd flux-markdown
+        ```
+      </Step>
+      <Step title="Build and install">
+        ```bash
+        make install
+        ```
+
+        This runs the full pipeline: builds the TypeScript web renderer (`npm install && npm run build`), generates the Xcode project via `xcodegen`, compiles the macOS app, and copies it to `/Applications`.
+      </Step>
+      <Step title="Launch the app once">
+        Open **FluxMarkdown** from Applications to register the QuickLook extension.
+
+        ```bash
+        open /Applications/FluxMarkdown.app
+        ```
+      </Step>
+      <Step title="Verify the preview works">
+        Select a `.md` file in Finder and press **Space**.
+      </Step>
+    </Steps>
+
+    <Info>
+      The `.xcodeproj` file is generated — do not commit it. All project configuration lives in `project.yml`. See the [Developer Guide](/dev/architecture) for more.
+    </Info>
+  </Tab>
+</Tabs>
+
+## After installation: verify the extension is registered
+
+If you want to confirm that macOS has registered the QuickLook extension correctly, run the following in Terminal:
+
+```bash
+pluginkit -m -v | grep -i markdownquicklook
+```
+
+You should see a line containing `com.markdownquicklook.app.MarkdownPreview`. If nothing appears, try launching the app again, then run `qlmanage -r && killall Finder` to refresh the QuickLook cache.
+
+## Troubleshooting
+
+If previews show plain text instead of rendered Markdown after installation:
+
+```bash
+qlmanage -r
+qlmanage -r cache
+killall Finder
+```
+
+Then try the **Space** preview again. For a full list of known issues and fixes, see [Troubleshooting](/help/troubleshooting).
